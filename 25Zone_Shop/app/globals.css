@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ported from your <style> blocks (multiple pages) */
+.text-shadow-lg { text-shadow: 0 4px 8px rgba(0,0,0,.6); }
+
+.hover-zoom-img { transition: transform .7s cubic-bezier(.25,.46,.45,.94); }
+.group:hover .hover-zoom-img { transform: scale(1.1); }
+
+.text-gradient {
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Smooth hover card */
+.service-card-hover {
+  transition: transform .4s cubic-bezier(.34,1.56,.64,1), box-shadow .4s ease;
+}
+.service-card-hover:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0,0,0,.2);
+}
+html {
+  scroll-behavior: auto;
+  scroll-padding-top: 90px;
+  scrollbar-gutter: stable;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
