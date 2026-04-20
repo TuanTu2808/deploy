@@ -16,6 +16,7 @@ import {
 import { fetchBookingSalonById } from "@/lib/booking-salons";
 import {fetchStylists} from "@/lib/booking-stylist"
 import { fetchBookingServicesByIds } from "@/lib/booking-services";
+import SalonEditButton from "@/app/components/booking_flow/SalonEditButton";
 
 export const metadata = {
   title: "Xac Nhan Thong Tin",
@@ -175,16 +176,19 @@ const selectedItems = [
                           </p>
                         </div>
                       </div>
-                      <Link
-                        href={buildBookingFlowHref(3, safeSelection, {
-                          stylistId: selectedStylistId || undefined,
-                          date: selectedDate || undefined,
-                          time: selectedTime || undefined,
-                        })}
-                        className="inline-flex w-full sm:w-auto items-center justify-center rounded-full border border-blue-600 bg-white px-4 py-2 text-[11px] font-semibold text-blue-600 hover:border-blue-700 hover:text-blue-700"
-                      >
-                        Đổi thời gian
-                      </Link>
+                      <div className="flex flex-col gap-2 w-full sm:w-auto mt-3 sm:mt-0">
+                        <SalonEditButton salonId={safeSelection.salonId} currentSearchParams={params as Record<string, string | string[] | undefined>} />
+                        <Link
+                          href={buildBookingFlowHref(3, safeSelection, {
+                            stylistId: selectedStylistId || undefined,
+                            date: selectedDate || undefined,
+                            time: selectedTime || undefined,
+                          })}
+                          className="inline-flex w-full sm:w-auto items-center justify-center rounded-full border border-blue-600 bg-white px-4 py-2 text-[11px] font-semibold text-blue-600 hover:border-blue-700 hover:text-blue-700"
+                        >
+                          Đổi thời gian
+                        </Link>
+                      </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-semibold text-slate-600">

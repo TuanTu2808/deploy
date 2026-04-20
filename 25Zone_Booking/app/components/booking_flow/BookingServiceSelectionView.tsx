@@ -18,6 +18,7 @@ import {
 } from "@/lib/booking-flow-selection";
 import { fetchBookingSalonById, type BookingSalon } from "@/lib/booking-salons";
 import type { BookingService } from "@/lib/booking-services";
+import SalonSelectionModal from "./SalonSelectionModal";
 
 type BookingServiceSelectionViewProps = {
   services: BookingService[];
@@ -159,6 +160,7 @@ export default function BookingServiceSelectionView({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const selectedItemsScrollRef = useRef<HTMLDivElement>(null);
   const [cartScrollState, setCartScrollState] = useState<"top" | "middle" | "bottom">("top");
+  const [isSalonModalOpen, setIsSalonModalOpen] = useState(false);
 
   const handleCartScroll = () => {
     if (!selectedItemsScrollRef.current) return;
@@ -647,12 +649,12 @@ const handleSelectCombo = async (combo: BookingComboItem) => {
                     </p>
                   </div>
                 </div>
-                <Link
-                  href={buildStepHref(1)}
-                  className="inline-flex w-full items-center justify-center rounded-full border border-blue-600 bg-white px-4 py-2 text-[11px] font-semibold text-blue-600 hover:border-blue-700 hover:text-blue-700 sm:w-auto transition-colors"
+                <button
+                  onClick={() => setIsSalonModalOpen(true)}
+                  className="inline-flex w-full items-center justify-center rounded-full border border-blue-600 bg-white px-4 py-2 text-[11px] font-semibold text-blue-600 hover:border-blue-700 hover:text-blue-700 hover:bg-blue-50 sm:w-auto transition-colors"
                 >
-                  Chọn lại salon
-                </Link>
+                  <i className="fa-solid fa-rotate mr-1.5"></i> Đổi chi nhánh
+                </button>
               </div>
             </div>
           </div>
@@ -894,12 +896,12 @@ const handleSelectCombo = async (combo: BookingComboItem) => {
                     Salon đã chọn
                   </span>
                 </div>
-                <Link
-                  href={buildStepHref(1)}
-                  className="rounded-full border border-blue-600 bg-white px-3 py-1 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 transition-colors shrink-0"
+                <button
+                  onClick={() => setIsSalonModalOpen(true)}
+                  className="rounded-full border border-blue-600 bg-white px-3 py-1.5 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 hover:border-blue-700 hover:text-blue-700 transition-colors shrink-0"
                 >
-                  Chọn lại salon
-                </Link>
+                  <i className="fa-solid fa-rotate mr-1"></i> Đổi chi nhánh
+                </button>
               </div>
               <div>
                 <h2 className="text-[15px] font-bold text-slate-900 line-clamp-1">
@@ -1152,6 +1154,22 @@ const handleSelectCombo = async (combo: BookingComboItem) => {
           </div>
         </div>
       )}
+
+      <SalonSelectionModal
+        isOpen={isSalonModalOpen}
+        onClose={() => setIsSalonModalOpen(false)}
+        currentSalonId={activeSalon?.id}
+        onSelect={(newSalonId) => {
+          const nextSelection = {
+            ...selection,
+            salonId: newSalonId,
+          };
+          const normalized = normalizeBookingFlowSelection(nextSelection);
+          updateSelection(normalized);
+          window.history.replaceState(null, "", buildBookingFlowHref(2, normalized));
+          setIsSalonModalOpen(false);
+        }}
+      />
     </>
   );
 }

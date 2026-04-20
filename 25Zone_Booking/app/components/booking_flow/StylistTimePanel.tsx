@@ -19,14 +19,18 @@ type Props = {
     date: string;
     time: string;
   }) => void;
-  onDateChange?: (date: string) => void; // 👈 THÊM
+  onDateChange?: (date: string) => void;
+  requiresStylist?: boolean;
+  onOpenSalonModal?: () => void;
 };
 
 export default function StylistTimePanel({
   stylists,
   initialDate,
   onSelectionChange,
-  onDateChange, 
+  onDateChange,
+  requiresStylist = true,
+  onOpenSalonModal,
 }: Props) {
   // 👉 default stylist
   const defaultStylist: Stylist = useMemo(
@@ -134,6 +138,33 @@ const handleSlotChange = useCallback(
       time: selectedTime,
     });
   }, [stylist, selectedDate, selectedTime, onSelectionChange]);
+
+  // Kiểm tra xem tất cả thợ (trừ mặc định) có rảnh không
+  const isAllStylistsBusy = useMemo(() => {
+    return !stylists || stylists.length === 0;
+  }, [stylists]);
+
+  // Nếu hết giờ, khóa hết
+  if (isAllStylistsBusy) {
+    return (
+      <div className="flex flex-col h-full bg-white border border-slate-100 rounded-3xl p-6 shadow-sm items-center justify-center text-center">
+        <div className="mx-auto flex flex-col items-center justify-center h-16 w-16 rounded-full bg-red-50 text-red-500 mb-4 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+          <i className="fa-solid fa-calendar-xmark text-2xl"></i>
+        </div>
+        <h2 className="text-xl font-black text-slate-900 mb-2">Hết ca làm việc</h2>
+        <p className="text-[14px] text-slate-600 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100 leading-relaxed max-w-sm">
+          Rất tiếc, chi nhánh đang chọn hiện không có thợ nào hoạt động hoặc đã kín lịch trong ngày này. Vui lòng chọn ngày khác hoặc đổi chi nhánh để tiếp tục.
+        </p>
+        <button
+          onClick={onOpenSalonModal}
+          className="w-full max-w-[240px] bg-blue-900 text-white font-semibold py-3 rounded-xl hover:bg-blue-800 transition-colors shadow-md shadow-blue-900/20 active:scale-95"
+        >
+          Chọn lại chi nhánh
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full bg-white border border-slate-100 rounded-3xl p-4 sm:p-5 shadow-sm">
       {/* TOP: Stylist Selection */}
@@ -164,17 +195,17 @@ const handleSlotChange = useCallback(
 
         {/* HORIZONTAL SWIPE LIST */}
         <div className="flex overflow-x-auto gap-3 sm:gap-4 pb-3 pt-1.5 px-2 -mx-2 custom-scrollbar snap-x">
-          {mergedStylists.map((s, idx) => {
+          {(requiresStylist ? mergedStylists : [defaultStylist]).map((s, idx) => {
             const isSelected = index === idx;
             return (
               <button
                 type="button"
                 key={s.id}
-                onClick={() => setIndex(idx)}
-                className="snap-start shrink-0 flex flex-col items-center gap-1.5 transition-all duration-300 focus:outline-none group"
+                onClick={() => requiresStylist && setIndex(idx)}
+                className={`snap-start shrink-0 flex flex-col items-center gap-1.5 transition-all duration-300 focus:outline-none group ${requiresStylist ? '' : 'cursor-default'}`}
               >
                 {/* RING BOUNDARY - Guarantees no clipping */}
-                <div className={`rounded-full p-[2.5px] transition-all duration-300 ${isSelected ? 'bg-gradient-to-tr from-blue-600 via-indigo-500 to-cyan-400 scale-105 shadow-sm shadow-blue-500/20' : 'bg-transparent group-hover:bg-slate-200 scale-100'}`}>
+                <div className={`rounded-full p-[2.5px] transition-all duration-300 ${isSelected ? 'bg-gradient-to-tr from-blue-600 via-indigo-500 to-cyan-400 scale-105 shadow-sm shadow-blue-500/20' : 'bg-transparent scale-100'}`}>
                   <div className="rounded-full bg-white p-[2px]">
                     <div className="relative">
                       <img

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -10,6 +10,7 @@ import {
 } from "@/lib/booking-flow-selection";
 import StylistTimePanel from "./StylistTimePanel";
 import { formatCurrency } from "./bookingData";
+import SalonSelectionModal from "./SalonSelectionModal";
 
 type Stylist = {
   id: number;
@@ -60,6 +61,19 @@ export default function TimeSelectionStep({
   const [selectedDate, setSelectedDate] = useState(
     initialDate ?? new Date().toISOString().slice(0, 10)
   );
+  const [isSalonModalOpen, setIsSalonModalOpen] = useState(false);
+
+  const requiresStylist = useMemo(() => {
+    const hasServiceReq = (services || []).some(s =>
+      /cắt|uốn|nhuộm|cat|uon|nhuom/i.test(`${s?.categoryName || ""} ${s?.title || ""}`)
+    );
+    const hasComboReq = (combos || []).some(c => {
+      const comboNameMatch = /cắt|uốn|nhuộm|cat|uon|nhuom/i.test(c?.Name || c?.name || "");
+      const catMatch = Array.isArray(c?.category_names) && c.category_names.some((name: string) => /cắt|uốn|nhuộm|cat|uon|nhuom/i.test(name || ""));
+      return comboNameMatch || catMatch;
+    });
+    return hasServiceReq || hasComboReq;
+  }, [services, combos]);
 
   useEffect(() => {
     if (!stylists.length) return;
@@ -188,6 +202,8 @@ export default function TimeSelectionStep({
           initialDate={selectedDate}
           onDateChange={handleDateChange}
           onSelectionChange={handleSelectionChange}
+          requiresStylist={requiresStylist}
+          onOpenSalonModal={() => setIsSalonModalOpen(true)}
         />
       </div>
 
@@ -239,12 +255,12 @@ export default function TimeSelectionStep({
               <div className="flex items-center justify-between">
                 <h3 className="font-bold text-slate-900 text-sm sm:text-base">Salon</h3>
                 {safeSelection && (
-                  <Link
-                    href={buildBookingFlowHref(1, safeSelection)}
-                    className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+                  <button
+                    onClick={() => setIsSalonModalOpen(true)}
+                    className="flex items-center justify-center rounded-full border border-blue-600 bg-white px-3 py-1.5 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 hover:border-blue-700 hover:text-blue-700 transition-colors"
                   >
-                    Thay đổi
-                  </Link>
+                    <i className="fa-solid fa-rotate mr-1.5"></i> Đổi chi nhánh
+                  </button>
                 )}
               </div>
               <div className="flex items-start gap-3 rounded-2xl bg-slate-50 p-3 sm:p-4 border border-slate-100">
@@ -371,6 +387,23 @@ export default function TimeSelectionStep({
           </div>
         </div>
       )}
+
+      <SalonSelectionModal
+        isOpen={isSalonModalOpen}
+        onClose={() => setIsSalonModalOpen(false)}
+        currentSalonId={salonId || null}
+        onSelect={(newSalonId) => {
+          const currentSelection = normalizeBookingFlowSelection({
+            phone,
+            salonId: newSalonId,
+            serviceIds,
+            comboIds: comboIds && comboIds.length ? comboIds : undefined,
+          });
+          writeStoredBookingFlowSelection(currentSelection);
+          router.replace(buildBookingFlowHref(3, currentSelection, { date: selectedDate }));
+          setIsSalonModalOpen(false);
+        }}
+      />
     </div>
   );
 }

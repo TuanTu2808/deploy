@@ -26,6 +26,11 @@ const MEMBER_MENU = [
     icon: "fa-solid fa-user-gear",
   },
   {
+    label: "Lịch sử đặt lịch",
+    href: "/lichsudatlich",
+    icon: "fa-solid fa-calendar-check",
+  },
+  {
     label: "Bí kíp chăm sóc tóc",
     href: "/bikipchamsoctoc",
     icon: "fa-solid fa-book-open",
