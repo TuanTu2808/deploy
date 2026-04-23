@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import HeroSlider from "./HeroSlider";
 import NewsSmileSection from "./NewsSmileSection";
 import HomeServiceShowcase from "./HomeServiceShowcase";
-import { loadToken } from "@/lib/auth-storage";
+import { loadToken, saveAuth } from "@/lib/auth-storage";
 
 type ProvinceSummaryResponse = {
   province: string;
@@ -148,6 +148,11 @@ export default function HomeContent() {
     "idle"
   );
   const [message, setMessage] = useState("");
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [pendingPhone, setPendingPhone] = useState("");
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpError, setOtpError] = useState("");
   const [branchQuery, setBranchQuery] = useState("");
   const [activePromoIndex, setActivePromoIndex] = useState(0);
   const shopUrl = process.env.NEXT_PUBLIC_SHOP_URL || "http://localhost:3000";
@@ -268,16 +273,66 @@ const handleQuickBooking = async (
         `/?auth=login&phone=${digits}&redirect=${encodeURIComponent(redirectUrl)}`
       );
     } else {
-      router.push(
-        `/?auth=register&phone=${digits}&redirect=${encodeURIComponent(redirectUrl)}`
-      );
+      const otpRes = await fetch(`${apiBase}/api/otp/send-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: digits })
+      });
+      const otpData = await otpRes.json();
+      if (!otpRes.ok) throw new Error(otpData.error || "Không thể gửi OTP.");
+      
+      setPendingPhone(digits);
+      setShowOtpModal(true);
+      setStatus("idle");
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
     setStatus("error");
-    setMessage("Có lỗi xảy ra, vui lòng thử lại.");
+    setMessage(error.message || "Có lỗi xảy ra, vui lòng thử lại.");
   }
 };
+
+  const handleVerifyOtp = async () => {
+    setOtpError("");
+    setOtpLoading(true);
+    try {
+      const res = await fetch(`${apiBase}/api/otp/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: pendingPhone, code: otpCode }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Mã OTP không hợp lệ.");
+      }
+
+      // Tự động tạo tài khoản mới
+      const regRes = await fetch(`${apiBase}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: pendingPhone,
+          phone: pendingPhone,
+          email: `${pendingPhone}@gmail.com`,
+          password: "123456",
+          address: pendingPhone,
+          remember: true
+        })
+      });
+      const regData = await regRes.json();
+      if (!regRes.ok) throw new Error(regData.message || "Không thể tạo tài khoản.");
+
+      saveAuth({ accessToken: regData.accessToken, refreshToken: regData.refreshToken }, regData.user, true);
+      
+      setShowOtpModal(false);
+      setOtpCode("");
+      router.push(`/chonsalon?step=1&phone=${pendingPhone}`);
+    } catch (err: any) {
+      setOtpError(err.message);
+    } finally {
+      setOtpLoading(false);
+    }
+  };
   const handleBranchSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const keyword = branchQuery.trim();
@@ -752,6 +807,53 @@ const handleQuickBooking = async (
         </section>
         <NewsSmileSection />
       </div>
+
+      {showOtpModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl relative animate-in fade-in zoom-in duration-300">
+            <button
+              onClick={() => setShowOtpModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <span className="material-symbols-outlined text-2xl">close</span>
+            </button>
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-[#003C71]">
+                <span className="material-symbols-outlined text-3xl">sms</span>
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 uppercase">Xác thực số điện thoại</h3>
+              <p className="text-slate-500 text-sm mt-2">
+                Mã xác thực gồm 6 số đã được gửi đến số<br/>
+                <strong className="text-slate-800">{pendingPhone}</strong>
+              </p>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <input
+                  type="text"
+                  placeholder="Nhập mã OTP..."
+                  className="w-full h-14 bg-slate-50 border border-slate-200 rounded-xl px-4 text-center text-2xl tracking-widest font-bold outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  maxLength={6}
+                />
+                {otpError && (
+                  <p className="text-red-500 text-sm mt-2 text-center font-medium">{otpError}</p>
+                )}
+              </div>
+              
+              <button
+                onClick={handleVerifyOtp}
+                disabled={otpLoading || otpCode.length < 4}
+                className="w-full h-14 bg-[#003C71] hover:bg-[#002d58] text-white font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-lg"
+              >
+                {otpLoading ? "Đang xác thực..." : "Xác nhận"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

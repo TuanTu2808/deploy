@@ -1,7 +1,7 @@
+import "dotenv/config";
 import express from "express";
 import path from "path";
 import cors from "cors";
-import dotenv from "dotenv";
 import dichVuRoutes from "./routes/dichvu.js";
 import combodichvuRoutes from "./routes/combodichvu.js";
 import danhMucDichVuRoutes from "./routes/danhmucdichvu.js";
@@ -34,8 +34,7 @@ import { requireAdminAuth } from "./middleware/auth.js";
 import { ensureAuthSchema, ensureComboSchema } from "./utils/schema.js";
 import database from "./database.js";
 import { startBookingContentWatcher } from "./utils/realtime.js";
-
-dotenv.config();
+import OTPRoutes from "./routes/otp.js"
 
 const app = express();
 const port = Number(process.env.PORT || 5001);
@@ -72,6 +71,7 @@ app.use("/api/admin/news", requireAdminAuth, adminNewsRoutes);
 app.use("/api/admin/news-categories", requireAdminAuth, adminNewsCategoriesRoutes);
 app.use("/api/voucher", voucherRoutes);
 app.use("/api/voucherbooking", voucherBookingRoutes);
+app.use("/api/OTP", OTPRoutes);
 
 app.use("/image", express.static(path.join(process.cwd(), "public", "image")));
 
