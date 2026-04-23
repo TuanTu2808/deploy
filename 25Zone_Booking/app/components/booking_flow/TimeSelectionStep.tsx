@@ -99,10 +99,11 @@ export default function TimeSelectionStep({
     router.replace(
       buildBookingFlowHref(3, currentSelection, {
         date: newDate,
+        stylistId: selection?.stylist?.id,
       }),
       { scroll: false }
     );
-  }, [router, phone, salonId, serviceIds, comboIds]);
+  }, [router, phone, salonId, serviceIds, comboIds, selection]);
 
   const handleSelectionChange = useCallback((next: Selection) => {
     setSelection((prev) => {

@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import BookingAccountShell from "@/app/components/account/BookingAccountShell";
 import { useAuth } from "@/app/components/auth/AuthProvider";
 import { apiRequest, errorMessage } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { buildBookingFlowHref, writeStoredBookingFlowSelection } from "@/lib/booking-flow-selection";
 
 type BookingStatus = "pending" | "confirmed" | "processing" | "completed" | "cancelled";
 
@@ -64,6 +66,10 @@ export default function BookingHistoryPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const router = useRouter();
+  const [rebookingId, setRebookingId] = useState<number | null>(null);
+  const [rebookPopup, setRebookPopup] = useState<{ show: boolean, message: string, onConfirm?: () => void }>({ show: false, message: "" });
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 3;
 
@@ -100,6 +106,85 @@ export default function BookingHistoryPage() {
     if (!token) return;
     loadBookings();
   }, [token, status]);
+
+  const handleRebook = async (booking: BookingHistoryItem) => {
+    if (!token || !user) return;
+    try {
+      setRebookingId(booking.Id_booking);
+
+      const res = await apiRequest<{ booking: any }>(`/api/datlich/me/${booking.Id_booking}`, { token });
+      const detail = res.booking;
+
+      const serviceIds = detail.items.filter((i: any) => i.Item_type === 'service').map((i: any) => i.Id_services);
+      const comboIds = detail.items.filter((i: any) => i.Item_type === 'combo').map((i: any) => i.Id_combo);
+      const salonId = detail.Id_store;
+      const stylistId = detail.Id_stylist;
+      const startDate = new Date(booking.Start_time);
+      const oldTime = `${startDate.getHours().toString().padStart(2, '0')}:${startDate.getMinutes().toString().padStart(2, '0')}`;
+
+      // Local time date string
+      const today = new Date();
+      const todayDateStr = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+
+      writeStoredBookingFlowSelection({
+        phone: (user as any).phone || "",
+        salonId,
+        serviceIds,
+        comboIds
+      });
+
+      let isAvailable = false;
+
+      if (stylistId) {
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "http://localhost:5001";
+        const availRes = await fetch(`${apiBase}/api/lichlamviec?userId=${stylistId}&date=${todayDateStr}`);
+        if (availRes.ok) {
+          const availData = await availRes.json();
+          const hours = availData?.hours || [];
+          if (hours.length > 0) {
+            const startIndex = hours.findIndex((h: any) => h.Hours?.slice(0, 5) === oldTime);
+            if (startIndex !== -1) {
+              const durationMinutes = detail.Duration_minutes || 30;
+              const slotCount = Math.ceil(durationMinutes / 30);
+              const slotsToCheck = hours.slice(startIndex, startIndex + slotCount);
+
+              const currentMinutes = today.getHours() * 60 + today.getMinutes();
+              const [oldH, oldM] = oldTime.split(':').map(Number);
+              const oldMinutes = oldH * 60 + oldM;
+
+              if (slotsToCheck.length === slotCount && slotsToCheck.every((h: any) => h.Status === 1) && oldMinutes > currentMinutes) {
+                isAvailable = true;
+              }
+            }
+          }
+        }
+      }
+
+      if (stylistId && !isAvailable) {
+        setRebookPopup({
+          show: true,
+          message: `Stylist ${booking.Stylist_name} hiện đang bận hoặc không làm việc vào lúc ${oldTime} hôm nay, hoặc khung giờ này đã qua. Bạn có muốn chuyển sang bước chọn thời gian/stylist khác không?`,
+          onConfirm: () => {
+            setRebookPopup({ show: false, message: "" });
+            router.push(buildBookingFlowHref(3, { salonId, serviceIds, comboIds }, { date: todayDateStr, stylistId }));
+          }
+        });
+        return;
+      }
+
+      if (isAvailable) {
+        router.push(buildBookingFlowHref(4, { salonId, serviceIds, comboIds }, { date: todayDateStr, time: oldTime, stylistId }));
+      } else {
+        router.push(buildBookingFlowHref(3, { salonId, serviceIds, comboIds }, { date: todayDateStr }));
+      }
+
+    } catch (err) {
+      console.error("Rebook error:", err);
+      alert("Lỗi khi đặt lại lịch. Vui lòng thử lại.");
+    } finally {
+      setRebookingId(null);
+    }
+  };
 
   const statuses = useMemo(
     () => [
@@ -278,6 +363,20 @@ export default function BookingHistoryPage() {
                         <p className="font-extrabold text-[#8b1e1e] tabular-nums">
                           {formatMoney(booking.Total_price)}
                         </p>
+                        {(booking.Status === "completed" || booking.Status === "cancelled") && (
+                          <button
+                            onClick={() => handleRebook(booking)}
+                            disabled={rebookingId === booking.Id_booking}
+                            className="inline-flex items-center justify-center rounded-xl bg-blue-50 border border-blue-200 px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-100 hover:border-blue-300 transition disabled:opacity-50"
+                          >
+                            {rebookingId === booking.Id_booking ? (
+                              <i className="fa-solid fa-spinner fa-spin mr-2"></i>
+                            ) : (
+                              <i className="fa-solid fa-rotate-right mr-2"></i>
+                            )}
+                            Đặt lại
+                          </button>
+                        )}
                         <Link
                           href={`/lichsudatlich/${booking.Id_booking}`}
                           className="inline-flex items-center justify-center rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 transition"
@@ -306,8 +405,8 @@ export default function BookingHistoryPage() {
                         key={pageStr}
                         onClick={() => setCurrentPage(pageStr)}
                         className={`w-10 h-10 flex items-center justify-center rounded-xl text-sm font-bold transition ${currentPage === pageStr
-                            ? "bg-[#003366] text-white"
-                            : "border border-gray-200 text-gray-600 hover:bg-gray-50"
+                          ? "bg-[#003366] text-white"
+                          : "border border-gray-200 text-gray-600 hover:bg-gray-50"
                           }`}
                       >
                         {pageStr}
@@ -327,6 +426,36 @@ export default function BookingHistoryPage() {
           </div>
         </BookingAccountShell>
       </section>
+
+      {rebookPopup.show && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm transition-all duration-300 px-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100">
+            <div className="text-center">
+              <div className="mx-auto flex flex-col items-center justify-center h-16 w-16 rounded-full bg-blue-50 text-blue-600 mb-4 shadow-[0_0_15px_rgba(37,99,235,0.2)]">
+                <i className="fa-solid fa-calendar-days text-2xl"></i>
+              </div>
+              <h3 className="text-lg font-black text-slate-900 mb-2">Đổi thời gian / Stylist</h3>
+              <p className="text-[13.5px] text-slate-600 mb-6 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100">
+                {rebookPopup.message}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setRebookPopup({ show: false, message: "" })}
+                  className="w-1/2 bg-white text-gray-700 font-semibold py-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors shadow-sm active:scale-95"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={rebookPopup.onConfirm}
+                  className="w-1/2 bg-blue-900 text-white font-semibold py-3 rounded-xl hover:bg-blue-800 transition-colors shadow-md shadow-blue-900/20 active:scale-95"
+                >
+                  Đồng ý
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

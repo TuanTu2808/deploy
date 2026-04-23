@@ -13,7 +13,7 @@ export const validateBookingFlowSelectionAvailability = async (
 ) => {
   const normalized = normalizeBookingFlowSelection(selection);
 
-  if (normalized.serviceIds.length === 0 && !normalized.comboId) {
+  if (normalized.serviceIds.length === 0 && normalized.comboIds.length === 0) {
     return {
       ...pruneInactiveBookingFlowSelection(normalized),
       canValidate: true,
@@ -25,20 +25,18 @@ export const validateBookingFlowSelectionAvailability = async (
       normalized.serviceIds.length > 0
         ? fetchBookingServiceAvailabilityByIds(normalized.serviceIds)
         : Promise.resolve([]),
-      normalized.comboId ? fetchBookingComboCatalog() : Promise.resolve(null),
+      normalized.comboIds.length > 0 ? fetchBookingComboCatalog() : Promise.resolve(null),
     ]);
 
     const activeServiceIds = serviceAvailability
       .filter((service) => service.exists && service.isActive)
       .map((service) => service.id);
-    const activeComboId = normalized.comboId
-      ? (comboCatalog?.combos.some((combo) => combo.Id_combo === normalized.comboId)
-          ? normalized.comboId
-          : null)
-      : undefined;
+    const activeComboIds = normalized.comboIds.filter(id => 
+      comboCatalog?.combos.some((combo) => combo.Id_combo === id)
+    );
     const result = pruneInactiveBookingFlowSelection(normalized, {
       activeServiceIds,
-      activeComboId,
+      activeComboIds,
     });
 
     return {

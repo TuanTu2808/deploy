@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   buildBookingFlowHref,
+  clearStoredBookingFlowSelection,
 } from "@/lib/booking-flow-selection";
 import { useAuth } from "../auth/AuthProvider";
 
@@ -153,6 +154,8 @@ export default function VoucherSection({
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.message);
+
+      clearStoredBookingFlowSelection();
 
       const url = buildBookingFlowHref(4, safeSelection, {
         bookingId: data.bookingId,

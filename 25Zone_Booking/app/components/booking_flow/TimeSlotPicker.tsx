@@ -97,11 +97,16 @@ React.useEffect(() => {
     setSelected(valid.time);
   }
 }, [availableTimes, selected]);
+  const onChangeRef = React.useRef(onChange);
+  React.useEffect(() => {
+    onChangeRef.current = onChange;
+  });
+
   // callback ra ngoài
   React.useEffect(() => {
     if (!date || !selected) return;
-    onChange?.({ date, time: selected });
-  }, [date, selected, onChange]);
+    onChangeRef.current?.({ date, time: selected });
+  }, [date, selected]);
 
   return (
     <div className="w-full">
