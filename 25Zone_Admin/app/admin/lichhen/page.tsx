@@ -1294,6 +1294,9 @@ export default function LichHenPage() {
                 <span className="font-bold text-red-600 bg-red-50 px-2 py-1 rounded inline-block mt-2">
                   {completeErrorModal.message}
                 </span>
+                <span className="block text-[11.5px] text-slate-400 mt-4 italic">
+                  * Có thể bấm hoàn thành sớm trước 15 phút
+                </span>
               </p>
               <button
                 onClick={() => setCompleteErrorModal({ show: false, message: "" })}

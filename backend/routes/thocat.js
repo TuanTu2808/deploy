@@ -8,7 +8,7 @@ router.get("/", async (req, res) => {
 const { store, role, date } = req.query;
 
     let query = `
-      SELECT 
+      SELECT DISTINCT
         u.Id_user,
         u.Name_user,
         u.Email,

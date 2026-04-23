@@ -233,7 +233,7 @@ function HairTopCard({
             <span className="text-xs text-gray-400 font-bold uppercase tracking-widest">
               Giá từ
             </span>
-            <span className="text-4xl sm:text-5xl font-black text-[#003366] leading-[0.95] sm:leading-none">
+            <span className="text-3xl sm:text-4xl font-black text-[#003366] leading-[0.95] sm:leading-none">
               {formatPriceK(combo?.Price || 0)}
             </span>
           </div>
@@ -303,7 +303,7 @@ function RelaxCard({
             </span>
           </div>
           <div className="absolute bottom-0 left-0 p-8 w-full z-20">
-            <h3 className="text-3xl sm:text-4xl md:text-5xl font-black text-white uppercase leading-[0.9] text-shadow-lg mb-2">
+            <h3 className="text-2xl sm:text-3xl md:text-4xl font-black text-white uppercase leading-[0.9] text-shadow-lg mb-2">
               {title.first}
               <br />
               {title.second || "Dịch vụ"}
@@ -325,7 +325,7 @@ function RelaxCard({
                   Giá trải nghiệm
                 </p>
                 <span
-                  className={`text-4xl sm:text-5xl font-black tracking-tighter ${accentColor}`}
+                  className={`text-3xl sm:text-4xl font-black tracking-tighter ${accentColor}`}
                 >
                   {formatPriceK(combo?.Price || 0)}
                 </span>
@@ -454,7 +454,7 @@ function SingleServiceCard({
         <div className="relative z-20 -mt-4 sm:-mt-6 flex flex-1 flex-col rounded-t-[2rem] bg-white p-8">
           <div className="flex-grow">
             <h3
-              className="mb-4 text-[1.95rem] sm:text-[2.35rem] md:text-[2.7rem] lg:text-[3.05rem] font-extrabold leading-[0.98] tracking-[-0.03em] text-[#031B34]"
+              className="mb-4 text-[1.5rem] sm:text-[1.8rem] md:text-[2.2rem] lg:text-[2.5rem] font-extrabold leading-[0.98] tracking-[-0.03em] text-[#031B34]"
               style={{
                 display: "-webkit-box",
                 WebkitBoxOrient: "vertical",
@@ -484,7 +484,7 @@ function SingleServiceCard({
                   Giá dịch vụ
                 </p>
                 <div className="mt-1 flex items-end gap-3">
-                  <span className="text-4xl sm:text-5xl font-black leading-[0.95] sm:leading-none text-[#003366]">
+                  <span className="text-3xl sm:text-4xl font-black leading-[0.95] sm:leading-none text-[#003366]">
                     {formatPriceK(discountedPrice)}
                   </span>
                   {hasSale ? (

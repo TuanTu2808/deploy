@@ -199,7 +199,7 @@ export default function BookingHistoryPage() {
 
   if (!hydrated || !bootstrapped) {
     return (
-      <main className="max-w-[1604px] mx-auto px-4 py-12">
+      <main className="mx-auto max-w-container px-4 sm:px-6 lg:px-8 py-12">
         <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-600">
           Đang tải lịch sử đặt lịch...
         </div>
@@ -209,7 +209,7 @@ export default function BookingHistoryPage() {
 
   if (!user || !token) {
     return (
-      <main className="max-w-[1604px] mx-auto px-4 py-12">
+      <main className="mx-auto max-w-container px-4 sm:px-6 lg:px-8 py-12">
         <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center">
           <p className="text-gray-700 font-semibold">
             Vui lòng đăng nhập để xem lịch sử đặt lịch.
@@ -227,7 +227,7 @@ export default function BookingHistoryPage() {
 
   return (
     <main>
-      <div className="max-w-[1604px] mx-auto px-4 mt-10 text-[15px] sm:text-base text-gray-500">
+      <div className="mx-auto max-w-container px-4 sm:px-6 lg:px-8 mt-10 text-[15px] sm:text-base text-gray-500">
         <div className="flex flex-wrap items-center gap-2">
           <Link className="hover:text-[#003366] font-semibold transition" href="/">
             Trang chủ
@@ -237,7 +237,7 @@ export default function BookingHistoryPage() {
         </div>
       </div>
 
-      <section className="max-w-[1604px] mx-auto px-4 py-12">
+      <section className="mx-auto max-w-container px-4 sm:px-6 lg:px-8 py-12">
         <BookingAccountShell active="history">
           <div className="border border-gray-200 rounded-2xl bg-white shadow-sm overflow-hidden">
             <div className="p-6 border-b border-gray-100">

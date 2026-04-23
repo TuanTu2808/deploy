@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import HeroSlider from "./HeroSlider";
 import NewsSmileSection from "./NewsSmileSection";
 import HomeServiceShowcase from "./HomeServiceShowcase";
-import { loadToken, saveAuth } from "@/lib/auth-storage";
+import TopStylists from "./TopStylists";
+import { loadToken, saveAuth, loadUser } from "@/lib/auth-storage";
 
 type ProvinceSummaryResponse = {
   province: string;
@@ -144,6 +145,13 @@ const TrendingStyles = () => {
 export default function HomeContent() {
   const router = useRouter();
   const [phone, setPhone] = useState("");
+
+  useEffect(() => {
+    const user = loadUser();
+    if (user?.Phone) {
+      setPhone(user.Phone);
+    }
+  }, []);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">(
     "idle"
   );
@@ -484,7 +492,7 @@ const handleQuickBooking = async (
           </div>
         </section>
         <HomeServiceShowcase />
-        <section className="py-16 sm:py-20 lg:py-24 bg-navy text-white relative overflow-hidden">
+        <section className="hidden md:block py-16 sm:py-20 lg:py-24 bg-navy text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-1/2 h-full bg-accent-blue/10 skew-x-12 transform translate-x-1/4"></div>
           <div className="absolute bottom-0 left-0 w-1/3 h-1/2 bg-primary/5 rounded-full blur-[100px]"></div>
           <div className="mx-auto max-w-container px-4 sm:px-6 lg:px-8 relative z-10">
@@ -614,7 +622,7 @@ const handleQuickBooking = async (
             </div>
           </div>
         </section>
-        <section className="py-16 sm:py-20 lg:py-24 bg-[#003366] text-white overflow-hidden relative">
+        <section className="hidden md:block py-16 sm:py-20 lg:py-24 bg-[#003366] text-white overflow-hidden relative">
           <div className="absolute inset-0">
             <img className="h-full w-full object-cover opacity-20 grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEEWOwVAEececkEBbs-nUXtt_tiHRvVrTCP2XEzz781nG0qiUQBSUiN2xZjn9-Uqg65_sXZGTzqBbP9Xo6tAqXeHKX_xP0kw9eRwGHjyBmrBVn8y7k6hRQHkR3fy-EzNczw038hJQPZeHr32ryDxxgysCNcCe0DxRPP60DBQbo02nSwPcvXywp2w8MOZFB8afh5X72nc9kdWldqv8ER-FtfUz0SzyiQchFbwK7izHBCROpEFxb_aBGxj1lf-XluEhXjNzSl4SiQWI" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#003366] via-[#003366]/95 to-[#003366]/70"></div>
@@ -635,79 +643,10 @@ const handleQuickBooking = async (
               <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-3xl mx-auto font-medium">Vinh danh những đôi bàn tay vàng. Hãy
                 trải nghiệm sự khác biệt với những nhà tạo mẫu tóc hàng đầu.</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-10">
-              <div className="group relative rounded-3xl bg-gray-900 border-2 border-white/5 overflow-hidden hover:border-primary transition-all duration-300 hover:shadow-neon transform hover:-translate-y-3">
-                <div className="aspect-[3/4] overflow-hidden relative">
-                  <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent via-transparent to-black z-10">
-                  </div>
-                  <img className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfpLr2NPYyiFntC_cWq4P1qVqRCVKUycE-URc8JDCmgoAI5e7T2cCsc_cL8A2dVRwZs6zaTBfFizHNPzDjPdGnO_XNYutQV5gdKUbPP7sqBSundbmI67zvfCQ9-r1GDXgEyePyLqqZTsY0HHn7cPpBqkQ2HVF23h5PxDdWtSCO6xWrPVula-MSKHOuFtmfdiWue9vCprTbnDz4_OJ2MguHWPMYQz65f7FsyChZX8yYbHEVhBrC0fImxSwACUdrt5fVugwqeMMIPmA" />
-                  <div className="absolute top-4 right-4 z-20 bg-yellow-400 text-navy font-black px-4 py-2 rounded-lg shadow-lg text-sm border-2 border-white">
-                    TOP 1</div>
-                </div>
-                <div className="p-6 relative z-20 -mt-12 sm:-mt-16 md:-mt-20 text-center">
-                  <h3 className="text-3xl font-black uppercase text-white mb-1 drop-shadow-lg">Hiếu Ngô</h3>
-                  <p className="text-primary text-sm font-bold mb-6 tracking-wide">Salon 346 Khâm Thiên</p>
-                  <button type="button" onClick={() => router.push("/chonsalon?step=1")} className="w-full bg-primary hover:bg-white text-navy font-black py-4 rounded-xl uppercase text-sm tracking-wider transition-all shadow-lg flex items-center justify-center gap-2 group-hover:scale-105">
-                    <span className="material-symbols-outlined text-lg">calendar_month</span>
-                    Đặt lịch với Stylist
-                  </button>
-                </div>
-              </div>
-              <div className="group relative rounded-3xl bg-gray-900 border-2 border-white/5 overflow-hidden hover:border-primary transition-all duration-300 hover:shadow-neon transform hover:-translate-y-3">
-                <div className="aspect-[3/4] overflow-hidden relative">
-                  <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent via-transparent to-black z-10">
-                  </div>
-                  <img className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBV2YrIkndICDveyAy8kB7K51BWRuMMz_lt9NHZI3Cmf7OoD9QMKy01RrA5pPlcyBx2TWHoxDKVU4uVOSnpauwRAtdrh7bdmd0dA-xuJD-esgAXXBTf7b4GXig1g7EN3dry4f1NBbEdEyVZiVzlriUE_9HA8OyywozOONJrH3LKjpn9MuKonEmK4_gC1Pa35BGhbvsmtmUqbvMcbM0aXYqGEvmEul6MlMCvqnGQm_60dLqe-K8XWmyfOjg6o7q0XfqvwL3btXgjbKo" />
-                  <div className="absolute top-4 right-4 z-20 bg-gray-300 text-navy font-black px-4 py-2 rounded-lg shadow-lg text-sm border-2 border-white">
-                    TOP 2</div>
-                </div>
-                <div className="p-6 relative z-20 -mt-12 sm:-mt-16 md:-mt-20 text-center">
-                  <h3 className="text-3xl font-black uppercase text-white mb-1 drop-shadow-lg">Tuấn Anh</h3>
-                  <p className="text-primary text-sm font-bold mb-6 tracking-wide">Salon 123 Nguyễn Trãi</p>
-                  <button type="button" onClick={() => router.push("/chonsalon?step=1")} className="w-full bg-white/10 hover:bg-primary hover:text-navy text-white font-black py-4 rounded-xl uppercase text-sm tracking-wider transition-all backdrop-blur-sm border border-white/20 flex items-center justify-center gap-2">
-                    <span className="material-symbols-outlined text-lg">calendar_month</span>
-                    Đặt lịch với Stylist
-                  </button>
-                </div>
-              </div>
-              <div className="group relative rounded-3xl bg-gray-900 border-2 border-white/5 overflow-hidden hover:border-primary transition-all duration-300 hover:shadow-neon transform hover:-translate-y-3">
-                <div className="aspect-[3/4] overflow-hidden relative">
-                  <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent via-transparent to-black z-10">
-                  </div>
-                  <img className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMYhx7p3JyjdV8Kvh6NVY96kMAmCntGeylbHosXBxzs7d_XjYRjT3lM98193PkcYh6IHrk7A4Konu04XfIjYsBNj7lavEaub9F4BtYrvJzvr9o-wb5obyp48ptcXExyFxKcQbmpRifUF9rSBNWITSmXqLSH6G-FDlQPuHEre5Kk7rnEAl9KefHDqoIoNCVR5NRplryYLJiS5Yezm3wTpzSsevfRO3ouZCT_Q--peyLkS5Yjl1sJ0dkdWKB9zYvwvps8ivPwN83J-k" />
-                  <div className="absolute top-4 right-4 z-20 bg-orange-700 text-white font-black px-4 py-2 rounded-lg shadow-lg text-sm border-2 border-white/50">
-                    TOP 3</div>
-                </div>
-                <div className="p-6 relative z-20 -mt-12 sm:-mt-16 md:-mt-20 text-center">
-                  <h3 className="text-3xl font-black uppercase text-white mb-1 drop-shadow-lg">Hùng Trần</h3>
-                  <p className="text-primary text-sm font-bold mb-6 tracking-wide">Salon 82 Trần Đại Nghĩa</p>
-                  <button type="button" onClick={() => router.push("/chonsalon?step=1")} className="w-full bg-white/10 hover:bg-primary hover:text-navy text-white font-black py-4 rounded-xl uppercase text-sm tracking-wider transition-all backdrop-blur-sm border border-white/20 flex items-center justify-center gap-2">
-                    <span className="material-symbols-outlined text-lg">calendar_month</span>
-                    Đặt lịch với Stylist
-                  </button>
-                </div>
-              </div>
-              <div className="group relative rounded-3xl bg-gray-900 border-2 border-white/5 overflow-hidden hover:border-primary transition-all duration-300 hover:shadow-neon transform hover:-translate-y-3">
-                <div className="aspect-[3/4] overflow-hidden relative">
-                  <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent via-transparent to-black z-10">
-                  </div>
-                  <img className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZua3CmCWtWHzOdOMGDr_JCm3-9BLBA-CQBLan7wfpBp5WQrAY3O-WHNLaAXPEtgwxq9XF-Ve6SJsnh2X94udKzo3pwXA5SMY1_68LeosHcZ6JnQ58Em1eB7aKovGR71QawNccnhtnYRfvmtYOjwvsqGxLiEDK6SMEpw4DRgiPGcTBIUok8BUwbtWZ-H88Lyww2Z3ISFHtbuhwZG3QfVHwApq3YCvO2OW2e2r8_grRcCiFaYWipgJz15Td2Ayjnn3JUcaCl9ZPqD4" />
-                  <div className="absolute top-4 right-4 z-20 bg-purple-600 text-white font-black px-4 py-2 rounded-lg shadow-lg text-sm border-2 border-white/50">
-                    TOP 4</div>
-                </div>
-                <div className="p-6 relative z-20 -mt-12 sm:-mt-16 md:-mt-20 text-center">
-                  <h3 className="text-3xl font-black uppercase text-white mb-1 drop-shadow-lg">Tân Phạm</h3>
-                  <p className="text-primary text-sm font-bold mb-6 tracking-wide">Salon 36 Cầu Giấy</p>
-                  <button type="button" onClick={() => router.push("/chonsalon?step=1")} className="w-full bg-white/10 hover:bg-primary hover:text-navy text-white font-black py-4 rounded-xl uppercase text-sm tracking-wider transition-all backdrop-blur-sm border border-white/20 flex items-center justify-center gap-2">
-                    <span className="material-symbols-outlined text-lg">calendar_month</span>
-                    Đặt lịch với Stylist
-                  </button>
-                </div>
-              </div>
-            </div>
+            <TopStylists />
           </div>
         </section>
-        <section className="py-16 sm:py-20 lg:py-24 bg-white relative">
+        <section className="hidden md:block py-16 sm:py-20 lg:py-24 bg-white relative">
           <div className="mx-auto max-w-container px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col md:flex-row items-center justify-between mb-8 sm:mb-10 lg:mb-12 border-b-2 border-gray-100 pb-8">
               <div className="flex items-center gap-6">
@@ -825,6 +764,9 @@ const handleQuickBooking = async (
               <p className="text-slate-500 text-sm mt-2">
                 Mã xác thực gồm 6 số đã được gửi đến số<br/>
                 <strong className="text-slate-800">{pendingPhone}</strong>
+              </p>
+              <p className="text-blue-600 font-medium text-xs mt-3 bg-blue-50 py-1.5 px-3 rounded-lg inline-block border border-blue-100">
+                Tài khoản đã được đăng ký tự động, vui lòng check tin nhắn nhận mật khẩu !
               </p>
             </div>
             

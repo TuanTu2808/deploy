@@ -663,14 +663,14 @@ export default function BranchFinderPage({
   return (
     <main className="w-full">
       <section className="bg-white border-b border-gray-100">
-        <div className="mx-auto max-w-container px-4 sm:px-6 lg:px-12 pt-8 pb-6 sm:pt-10 sm:pb-8 lg:pt-12 lg:pb-10">
-          <h1 className="text-navy text-2xl sm:text-3xl md:text-4xl font-extrabold uppercase tracking-tight mb-5 sm:mb-7">
+        <div className="mx-auto max-w-container px-4 sm:px-6 lg:px-12 pt-4 pb-3 sm:pt-10 sm:pb-8 lg:pt-12 lg:pb-10">
+          <h1 className="text-navy text-xl sm:text-3xl md:text-4xl font-extrabold uppercase tracking-tight mb-3 sm:mb-7">
             Hệ thống salon toàn quốc
           </h1>
 
-          <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 sm:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.06)]">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-6 items-end">
-              <div className="md:col-span-2 lg:col-span-5">
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3 sm:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.06)]">
+            <div className="grid grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-6 items-end">
+              <div className="col-span-2 lg:col-span-5">
                 <label className="block text-[11px] sm:text-sm font-semibold text-slate-600 mb-1.5 sm:mb-2 uppercase tracking-[0.18em]">
                   Tìm kiếm nhanh
                 </label>
@@ -681,7 +681,7 @@ export default function BranchFinderPage({
                     </span>
                   </div>
                   <input
-                    className="w-full h-full bg-transparent border-none text-white placeholder-slate-200 focus:ring-0 text-sm sm:text-base font-semibold tracking-[0.02em]"
+                    className="w-full h-full bg-transparent border-none text-white placeholder-slate-200 focus:ring-0 text-sm sm:text-base font-semibold tracking-[0.02em] pr-4"
                     placeholder="Nhập tên salon, đường, quận, huyện..."
                     type="text"
                     value={query}
@@ -690,26 +690,27 @@ export default function BranchFinderPage({
                       setPage(1);
                     }}
                   />
+                </div>
+                <div className="mt-2.5 flex items-center justify-between">
                   <button
                     type="button"
-                    className="flex items-center justify-center text-accent-blue hover:text-white hover:bg-white/10 h-9 w-9 sm:h-10 sm:w-10 rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                    title="Tìm salon theo vị trí hiện tại"
-                    aria-label="Tìm salon theo vị trí hiện tại"
                     onClick={handleFindByCurrentLocation}
                     disabled={locationLookup.type === "loading" || isLoading}
+                    className="flex items-center gap-1.5 text-[12px] sm:text-[13px] font-bold text-accent-blue hover:text-blue-500 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    <span className="material-symbols-outlined text-[22px] sm:text-[24px]">
+                    <span className={`material-symbols-outlined text-[16px] sm:text-[18px] ${locationLookup.type === "loading" ? "animate-spin" : ""}`}>
                       {locationLookup.type === "loading" ? "sync" : "my_location"}
                     </span>
+                    <span>Tìm salon gần vị trí của tôi</span>
                   </button>
                 </div>
                 {locationLookup.message ? (
                   <p
-                    className={`mt-2 text-xs sm:text-sm font-semibold ${
+                    className={`mt-1.5 text-[11px] sm:text-xs font-semibold ${
                       locationLookup.type === "error"
-                        ? "text-red-600"
+                        ? "text-red-500"
                         : locationLookup.type === "success"
-                        ? "text-emerald-600"
+                        ? "text-emerald-500"
                         : "text-slate-500"
                     }`}
                     role="status"
@@ -720,7 +721,7 @@ export default function BranchFinderPage({
                 ) : null}
               </div>
 
-              <div className="md:col-span-1 lg:col-span-3">
+              <div className="col-span-1 lg:col-span-3">
                 <label className="block text-[11px] sm:text-sm font-semibold text-slate-600 mb-1.5 sm:mb-2 uppercase tracking-[0.18em]">
                   Tỉnh/Thành phố
                 </label>
@@ -745,7 +746,7 @@ export default function BranchFinderPage({
                 </div>
               </div>
 
-              <div className="md:col-span-1 lg:col-span-2">
+              <div className="col-span-1 lg:col-span-2">
                 <label className="block text-[11px] sm:text-sm font-semibold text-slate-600 mb-1.5 sm:mb-2 uppercase tracking-[0.18em]">
                   Quận/Huyện
                 </label>
@@ -775,7 +776,7 @@ export default function BranchFinderPage({
                 </div>
               </div>
 
-              <div className="md:col-span-2 lg:col-span-2">
+              <div className="col-span-2 lg:col-span-2">
                 <button
                   type="button"
                   onClick={handleResetFilters}
@@ -793,8 +794,8 @@ export default function BranchFinderPage({
       <section className="bg-background-alt">
         <div className="mx-auto max-w-container px-4 sm:px-6 lg:px-12 pt-2 pb-8 sm:py-10 lg:py-12">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
-            <aside className="lg:col-span-3">
-              <div className="bg-white rounded-xl shadow-soft border border-gray-100 overflow-hidden h-auto lg:h-[700px] flex flex-col">
+            <aside className="hidden lg:block lg:col-span-3">
+              <div className="bg-white rounded-xl shadow-soft border border-gray-100 overflow-hidden lg:h-[700px] flex flex-col">
                 <div className="p-4 sm:p-5 border-b border-gray-100 bg-white">
                   <h3 className="text-sm sm:text-base font-extrabold text-navy flex items-center gap-2">
                     <span className="material-symbols-outlined text-accent-blue">

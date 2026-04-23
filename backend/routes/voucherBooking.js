@@ -91,26 +91,6 @@ router.get("/check", async (req, res) => {
   }
 });
 
-// GET: Lấy voucher booking theo ID
-router.get("/:Id", async (req, res) => {
-  try {
-    const { Id } = req.params;
-    const [rows] = await database.query(
-      `SELECT * FROM vouchers_booking WHERE Id_voucher = ?`,
-      [Id]
-    );
-
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "Voucher booking không tồn tại" });
-    }
-
-    res.json(rows[0]);
-  } catch (error) {
-    console.error("Lỗi GET voucher booking theo ID:", error);
-    res.status(500).json({ message: "Lỗi server" });
-  }
-});
-
 // GET: Lấy danh sách voucher khả dụng cho booking
 router.get("/available", async (req, res) => {
   try {
@@ -152,6 +132,27 @@ router.get("/available", async (req, res) => {
     res.status(500).json({ message: "Lỗi server" });
   }
 });
+
+// GET: Lấy voucher booking theo ID
+router.get("/:Id", async (req, res) => {
+  try {
+    const { Id } = req.params;
+    const [rows] = await database.query(
+      `SELECT * FROM vouchers_booking WHERE Id_voucher = ?`,
+      [Id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Voucher booking không tồn tại" });
+    }
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error("Lỗi GET voucher booking theo ID:", error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
+
 
 // POST: Tạo voucher booking mới
 router.post("/", async (req, res) => {

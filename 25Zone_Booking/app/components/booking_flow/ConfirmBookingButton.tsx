@@ -175,8 +175,39 @@ console.log("slotsToUpdate:", slotsToUpdate);
       >
         {loading ? "ĐANG XÁC NHẬN..." : "XÁC NHẬN ĐẶT LỊCH"}
       </button>
+      
+      {/* ERROR POPUP */}
       {error ? (
-        <p className="mt-3 text-sm text-red-600 font-semibold">{error}</p>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-[24px] p-6 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100 relative">
+            <div className="text-center">
+              <div className="mx-auto flex flex-col items-center justify-center h-16 w-16 rounded-full bg-red-50 text-red-500 mb-4 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+                <i className="fa-solid fa-circle-exclamation text-3xl"></i>
+              </div>
+              <h3 className="text-lg font-black text-slate-900 mb-2">Không thể đặt lịch</h3>
+              <p className="text-[13.5px] text-slate-600 mb-6 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
+                {error}
+              </p>
+              <div className="flex gap-3">
+                 <button
+                  onClick={() => setError("")}
+                  className="flex-1 bg-slate-100 text-slate-700 font-semibold py-3 rounded-xl hover:bg-slate-200 transition-colors shadow-sm active:scale-95"
+                 >
+                   Đóng lại
+                 </button>
+                 <button
+                  onClick={() => {
+                     setError("");
+                     router.push("/taikhoan/lichhen");
+                  }}
+                  className="flex-1 bg-blue-900 text-white font-semibold py-3 rounded-xl hover:bg-blue-800 transition-colors shadow-md shadow-blue-900/20 active:scale-95 flex items-center justify-center gap-2"
+                 >
+                   Xem lịch cũ <i className="fa-solid fa-arrow-right"></i>
+                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );

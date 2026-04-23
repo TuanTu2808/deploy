@@ -168,85 +168,87 @@ const handleSlotChange = useCallback(
   return (
     <div className="flex flex-col h-full bg-white border border-slate-100 rounded-3xl p-4 sm:p-5 shadow-sm">
       {/* TOP: Stylist Selection */}
-      <div className="shrink-0 pb-2 sm:pb-3">
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400 font-bold">
-              Stylist
-            </p>
-            <div className="flex items-center gap-2 mt-0.5">
-              <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-none">
-                {stylist?.id === -1 ? "25Zone Gợi ý" : stylist?.name}
-              </h2>
-              {stylist.id !== -1 && (
-                <button
-                  onClick={handleToggleDetail}
-                  className="text-[9.5px] text-blue-600 font-bold hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-full transition-colors flex items-center gap-1 shadow-sm"
-                >
-                  <i className="fa-solid fa-circle-info"></i> Chi tiết
-                </button>
-              )}
+      {requiresStylist && (
+        <div className="shrink-0 pb-2 sm:pb-3">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400 font-bold">
+                Stylist
+              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-none">
+                  {stylist?.id === -1 ? "25Zone Gợi ý" : stylist?.name}
+                </h2>
+                {stylist.id !== -1 && (
+                  <button
+                    onClick={handleToggleDetail}
+                    className="text-[9.5px] text-blue-600 font-bold hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-full transition-colors flex items-center gap-1 shadow-sm"
+                  >
+                    <i className="fa-solid fa-circle-info"></i> Chi tiết
+                  </button>
+                )}
+              </div>
             </div>
+            <span className="text-[10px] font-bold text-slate-500 bg-slate-50 px-2.5 py-0.5 rounded-full border border-slate-200 shadow-sm whitespace-nowrap">
+              {mergedStylists.length > 0 ? "Vuốt để chọn" : ""}
+            </span>
           </div>
-          <span className="text-[10px] font-bold text-slate-500 bg-slate-50 px-2.5 py-0.5 rounded-full border border-slate-200 shadow-sm whitespace-nowrap">
-            {mergedStylists.length > 0 ? "Vuốt để chọn" : ""}
-          </span>
-        </div>
 
-        {/* HORIZONTAL SWIPE LIST */}
-        <div className="flex overflow-x-auto gap-3 sm:gap-4 pb-3 pt-1.5 px-2 -mx-2 custom-scrollbar snap-x">
-          {(requiresStylist ? mergedStylists : [defaultStylist]).map((s, idx) => {
-            const isSelected = index === idx;
-            return (
-              <button
-                type="button"
-                key={s.id}
-                onClick={() => requiresStylist && setIndex(idx)}
-                className={`snap-start shrink-0 flex flex-col items-center gap-1.5 transition-all duration-300 focus:outline-none group ${requiresStylist ? '' : 'cursor-default'}`}
-              >
-                {/* RING BOUNDARY - Guarantees no clipping */}
-                <div className={`rounded-full p-[2.5px] transition-all duration-300 ${isSelected ? 'bg-gradient-to-tr from-blue-600 via-indigo-500 to-cyan-400 scale-105 shadow-sm shadow-blue-500/20' : 'bg-transparent scale-100'}`}>
-                  <div className="rounded-full bg-white p-[2px]">
-                    <div className="relative">
-                      <img
-                        src={
-                          s.image
-                            ? s.image.startsWith("http")
-                              ? s.image
-                              : `http://localhost:5001/image/${s.image}`
-                            : "http://localhost:5001/image/25Zone.png"
-                        }
-                        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover bg-slate-100"
-                        alt={s.name}
-                      />
-                      {/* Badge for default stylist */}
-                      {s.id === -1 && (
-                         <div className="absolute -bottom-1 -right-1 bg-gradient-to-br from-blue-600 to-indigo-600 text-white w-5 h-5 rounded-full flex items-center justify-center border-[2px] border-white text-[9px] shadow-sm z-10">
-                           ✨
-                         </div>
-                      )}
+          {/* HORIZONTAL SWIPE LIST */}
+          <div className="flex overflow-x-auto gap-3 sm:gap-4 pb-3 pt-1.5 px-2 -mx-2 custom-scrollbar snap-x">
+            {mergedStylists.map((s, idx) => {
+              const isSelected = index === idx;
+              return (
+                <button
+                  type="button"
+                  key={s.id}
+                  onClick={() => setIndex(idx)}
+                  className="snap-start shrink-0 flex flex-col items-center gap-1.5 transition-all duration-300 focus:outline-none group"
+                >
+                  {/* RING BOUNDARY - Guarantees no clipping */}
+                  <div className={`rounded-full p-[2.5px] transition-all duration-300 ${isSelected ? 'bg-gradient-to-tr from-blue-600 via-indigo-500 to-cyan-400 scale-105 shadow-sm shadow-blue-500/20' : 'bg-transparent scale-100'}`}>
+                    <div className="rounded-full bg-white p-[2px]">
+                      <div className="relative">
+                        <img
+                          src={
+                            s.image
+                              ? s.image.startsWith("http")
+                                ? s.image
+                                : `http://localhost:5001/image/${s.image}`
+                              : "http://localhost:5001/image/25Zone.png"
+                          }
+                          className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover bg-slate-100"
+                          alt={s.name}
+                        />
+                        {/* Badge for default stylist */}
+                        {s.id === -1 && (
+                           <div className="absolute -bottom-1 -right-1 bg-gradient-to-br from-blue-600 to-indigo-600 text-white w-5 h-5 rounded-full flex items-center justify-center border-[2px] border-white text-[9px] shadow-sm z-10">
+                             ✨
+                           </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <span className={`text-[9.5px] sm:text-[10.5px] max-w-[90px] sm:max-w-[100px] truncate text-center transition-all duration-300 ${isSelected ? 'font-bold text-slate-900' : 'font-semibold text-slate-400 group-hover:text-slate-600'}`}>
-                  {s.id === -1 ? "Gợi ý" : s.name}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                  <span className={`text-[9.5px] sm:text-[10.5px] max-w-[90px] sm:max-w-[100px] truncate text-center transition-all duration-300 ${isSelected ? 'font-bold text-slate-900' : 'font-semibold text-slate-400 group-hover:text-slate-600'}`}>
+                    {s.id === -1 ? "Gợi ý" : s.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
-        {/* optional label */}
-        {stylist?.id === -1 && (
-          <p className="mt-1.5 text-[10px] text-slate-600 text-left font-medium bg-blue-50 p-2 rounded-lg border border-blue-100/60 shadow-sm flex items-start gap-1.5">
-            <span className="text-blue-600 shrink-0 mt-0.5">✨</span> 
-            <span className="leading-tight">Hệ thống sẽ ưu tiên chọn giúp bạn stylist xuất sắc nhất có lịch trống phù hợp.</span>
-          </p>
-        )}
-      </div>
+          {/* optional label */}
+          {stylist?.id === -1 && (
+            <p className="mt-1.5 text-[10px] text-slate-600 text-left font-medium bg-blue-50 p-2 rounded-lg border border-blue-100/60 shadow-sm flex items-start gap-1.5">
+              <span className="text-blue-600 shrink-0 mt-0.5">✨</span> 
+              <span className="leading-tight">Hệ thống sẽ ưu tiên chọn giúp bạn stylist xuất sắc nhất có lịch trống phù hợp.</span>
+            </p>
+          )}
+        </div>
+      )}
 
       {/* BOTTOM: Time Selection */}
-      <div className="border-t border-slate-100 pt-3 sm:pt-4 flex flex-col flex-1 min-h-0 bg-white">
+      <div className={`border-slate-100 pt-3 sm:pt-4 flex flex-col flex-1 min-h-0 bg-white ${requiresStylist ? 'border-t' : ''}`}>
         <div className="shrink-0 mb-3">
           <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400 font-bold">
             Thời gian

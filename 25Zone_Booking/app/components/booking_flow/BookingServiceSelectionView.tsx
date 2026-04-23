@@ -669,9 +669,11 @@ const handleSelectCombo = async (combo: BookingComboItem) => {
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
               <select
-                value={selectedCategory}
+                value={selectedCategory === COMBO_CATEGORY_KEY ? "all" : selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="h-9 rounded-full border border-slate-200 bg-white pl-4 pr-8 text-[12px] font-semibold text-slate-700 focus:border-blue-500 focus:outline-none shadow-sm"
+                className={`h-9 rounded-full border bg-white pl-4 pr-8 text-[12px] font-semibold text-slate-700 focus:border-blue-500 focus:outline-none shadow-sm transition-colors ${
+                  selectedCategory === COMBO_CATEGORY_KEY ? "border-slate-200 opacity-60" : "border-slate-200"
+                }`}
               >
                 <option value="all">Tất cả danh mục</option>
                 {categoryLabels.map((c) => (
@@ -679,13 +681,44 @@ const handleSelectCombo = async (combo: BookingComboItem) => {
                     {c}
                   </option>
                 ))}
-                {/* Assuming hasHaircutCategory logic exists */}
-                <option value={COMBO_CATEGORY_KEY}>Combo</option>
               </select>
             </div>
 
+            <button
+              onClick={() => {
+                if (selectedCategory === COMBO_CATEGORY_KEY) {
+                  setSelectedCategory("all");
+                } else {
+                  setSelectedCategory(COMBO_CATEGORY_KEY);
+                }
+              }}
+              className={`group relative inline-flex h-9 items-center justify-center gap-1.5 rounded-full px-5 text-[12px] font-bold transition-all duration-300 ${
+                selectedCategory === COMBO_CATEGORY_KEY
+                  ? "bg-slate-100 text-slate-700 border border-slate-200 shadow-inner"
+                  : "bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 text-white shadow-md shadow-orange-500/30 hover:shadow-orange-500/50 hover:-translate-y-0.5 border border-transparent"
+              }`}
+            >
+              {selectedCategory !== COMBO_CATEGORY_KEY && (
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                </span>
+              )}
+              {selectedCategory === COMBO_CATEGORY_KEY ? (
+                <>
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                  Quay lại Dịch vụ
+                </>
+              ) : (
+                <>
+                  <svg className="h-3.5 w-3.5 text-yellow-100" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                  Combo Tiết Kiệm
+                </>
+              )}
+            </button>
+
             <div 
-              className={`flex items-center gap-2 rounded-full border border-slate-200 bg-white shadow-sm transition-all duration-300 ${isSearchExpanded || searchKeyword ? "px-3 py-1.5 w-[140px] sm:w-[180px]" : "w-10 h-10 justify-center cursor-pointer"}`}
+              className={`flex items-center gap-2 rounded-full border border-slate-200 bg-white shadow-sm transition-all duration-300 ${isSearchExpanded || searchKeyword ? "px-3 py-1.5 w-[140px] sm:w-[180px]" : "w-10 h-9 justify-center cursor-pointer"}`}
               onClick={() => {
                 if (!isSearchExpanded) {
                   setIsSearchExpanded(true);
@@ -708,15 +741,6 @@ const handleSelectCombo = async (combo: BookingComboItem) => {
                 />
               )}
             </div>
-
-            {hasActiveFilters && (
-              <button
-                onClick={clearAllFilters}
-                className="inline-flex h-9 items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-600 transition-colors hover:border-red-200 hover:text-red-700"
-              >
-                Đặt lại
-              </button>
-            )}
           </div>
 
           <div className="mb-3 flex flex-col gap-3 sm:mb-5">
@@ -932,7 +956,7 @@ const handleSelectCombo = async (combo: BookingComboItem) => {
                 </div>
 
                 <div className="relative group">
-                  <div ref={selectedItemsScrollRef} onScroll={handleCartScroll} className="max-h-[320px] overflow-y-auto space-y-3 pr-2 custom-scrollbar pb-6">
+                  <div ref={selectedItemsScrollRef} onScroll={handleCartScroll} className="max-h-[250px] overflow-y-auto space-y-3 pr-2 custom-scrollbar pb-6">
                   {/* COMBO ĐÃ CHỌN */}
                   {selectedCombos.map((combo) => (
                     <div key={combo.Id_combo} className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
