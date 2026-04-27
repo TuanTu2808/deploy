@@ -161,6 +161,7 @@ export default function HomeContent() {
   const [pendingPhone, setPendingPhone] = useState("");
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpError, setOtpError] = useState("");
+  const [showOtpSuccess, setShowOtpSuccess] = useState(false);
   const [branchQuery, setBranchQuery] = useState("");
   const [activePromoIndex, setActivePromoIndex] = useState(0);
   const shopUrl = process.env.NEXT_PUBLIC_SHOP_URL || "http://localhost:3000";
@@ -332,9 +333,13 @@ const handleQuickBooking = async (
 
       saveAuth({ accessToken: regData.accessToken, refreshToken: regData.refreshToken }, regData.user, true);
       
-      setShowOtpModal(false);
-      setOtpCode("");
-      router.push(`/chonsalon?step=1&phone=${pendingPhone}`);
+      setShowOtpSuccess(true);
+      setTimeout(() => {
+        setShowOtpModal(false);
+        setOtpCode("");
+        setShowOtpSuccess(false);
+        router.push(`/chonsalon?step=1&phone=${pendingPhone}`);
+      }, 5000);
     } catch (err: any) {
       setOtpError(err.message);
     } finally {
@@ -750,49 +755,66 @@ const handleQuickBooking = async (
       {showOtpModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl relative animate-in fade-in zoom-in duration-300">
-            <button
-              onClick={() => setShowOtpModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <span className="material-symbols-outlined text-2xl">close</span>
-            </button>
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-[#003C71]">
-                <span className="material-symbols-outlined text-3xl">sms</span>
-              </div>
-              <h3 className="text-2xl font-black text-slate-900 uppercase">Xác thực số điện thoại</h3>
-              <p className="text-slate-500 text-sm mt-2">
-                Mã xác thực gồm 6 số đã được gửi đến số<br/>
-                <strong className="text-slate-800">{pendingPhone}</strong>
-              </p>
-              <p className="text-blue-600 font-medium text-xs mt-3 bg-blue-50 py-1.5 px-3 rounded-lg inline-block border border-blue-100">
-                Tài khoản đã được đăng ký tự động, vui lòng check tin nhắn nhận mật khẩu !
-              </p>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <input
-                  type="text"
-                  placeholder="Nhập mã OTP..."
-                  className="w-full h-14 bg-slate-50 border border-slate-200 rounded-xl px-4 text-center text-2xl tracking-widest font-bold outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  maxLength={6}
-                />
-                {otpError && (
-                  <p className="text-red-500 text-sm mt-2 text-center font-medium">{otpError}</p>
-                )}
-              </div>
-              
+            {!showOtpSuccess && (
               <button
-                onClick={handleVerifyOtp}
-                disabled={otpLoading || otpCode.length < 4}
-                className="w-full h-14 bg-[#003C71] hover:bg-[#002d58] text-white font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-lg"
+                onClick={() => setShowOtpModal(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
               >
-                {otpLoading ? "Đang xác thực..." : "Xác nhận"}
+                <span className="material-symbols-outlined text-2xl">close</span>
               </button>
-            </div>
+            )}
+
+            {showOtpSuccess ? (
+              <div className="flex flex-col items-center justify-center py-6 text-center animate-in zoom-in duration-300">
+                <div className="w-20 h-20 mb-4 rounded-full bg-emerald-100 flex items-center justify-center">
+                  <i className="fa-solid fa-check text-4xl text-emerald-500 animate-[bounce_1s_ease-in-out]"></i>
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 uppercase mb-3">Tạo tài khoản thành công</h3>
+                <p className="text-sm font-medium text-blue-600 bg-blue-50 py-2 px-3 rounded-lg border border-blue-100 mb-4">
+                  Mật khẩu đăng nhập đã được gửi về số điện thoại của quý khách, vui lòng kiểm tra tin nhắn.
+                </p>
+                <p className="text-slate-500 text-sm flex items-center gap-2">
+                  <i className="fa-solid fa-circle-notch fa-spin"></i> Đang chuyển đến Đặt lịch...
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-[#003C71]">
+                    <span className="material-symbols-outlined text-3xl">sms</span>
+                  </div>
+                  <h3 className="text-2xl font-black text-slate-900 uppercase">Xác thực số điện thoại</h3>
+                  <p className="text-slate-500 text-sm mt-2">
+                    Mã xác thực gồm 6 số đã được gửi đến số<br/>
+                    <strong className="text-slate-800">{pendingPhone}</strong>
+                  </p>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Nhập mã OTP..."
+                      className="w-full h-14 bg-slate-50 border border-slate-200 rounded-xl px-4 text-center text-2xl tracking-widest font-bold outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      maxLength={6}
+                    />
+                    {otpError && (
+                      <p className="text-red-500 text-sm mt-2 text-center font-medium">{otpError}</p>
+                    )}
+                  </div>
+                  
+                  <button
+                    onClick={handleVerifyOtp}
+                    disabled={otpLoading || otpCode.length < 4}
+                    className="w-full h-14 bg-[#003C71] hover:bg-[#002d58] text-white font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-lg"
+                  >
+                    {otpLoading ? "Đang xác thực..." : "Xác nhận"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

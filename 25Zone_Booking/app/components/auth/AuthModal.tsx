@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { usePresence } from "./usePresence";
@@ -130,6 +130,7 @@ export default function AuthModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [authSuccessAnim, setAuthSuccessAnim] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -161,6 +162,7 @@ export default function AuthModal({
     if (!open) return;
     setError("");
     setSuccess("");
+    setAuthSuccessAnim(false);
     setLoginErrors({});
     setRegisterErrors({});
   }, [open, mode, forgotOpen, forgotStep]);
@@ -207,18 +209,20 @@ export default function AuthModal({
 
   const afterAuthSuccess = (response: AuthResponse, remember = true) => {
     signIn(resolveTokens(response), response.user, remember);
-    setSuccess(response.message || "Thành công.");
+    setAuthSuccessAnim(true);
 
-    // 🔥 LẤY redirect từ URL
-    const params = new URLSearchParams(window.location.search);
-    const redirect = params.get("redirect");
+    setTimeout(() => {
+      // 🔥 LẤY redirect từ URL
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get("redirect");
 
-    if (redirect) {
-      window.location.href = redirect;
-      return;
-    }
+      if (redirect) {
+        window.location.href = redirect;
+        return;
+      }
 
-    onClose();
+      onClose();
+    }, 2000);
   };
 
   const validateLoginForm = () => {
@@ -484,7 +488,15 @@ export default function AuthModal({
             <i className="fa-solid fa-xmark text-[18px]" />
           </button>
 
-          {mode === "login" && (
+          {authSuccessAnim ? (
+            <div className="col-span-1 md:col-span-2 flex flex-col items-center justify-center h-full min-h-[400px] animate-in fade-in zoom-in duration-300">
+              <div className="w-24 h-24 mb-6 rounded-full bg-emerald-100 flex items-center justify-center">
+                <i className="fa-solid fa-check text-5xl text-emerald-500 animate-[bounce_1s_ease-in-out]"></i>
+              </div>
+              <h2 className="text-2xl font-bold text-[#0F172A] mb-2">Đăng nhập thành công!</h2>
+              <p className="text-slate-500">Đang chuyển hướng...</p>
+            </div>
+          ) : mode === "login" ? (
             <>
               <div className="hidden md:flex">
                 <AccentPanel
@@ -744,9 +756,7 @@ export default function AuthModal({
                 </div>
               </div>
             </>
-          )}
-
-          {mode === "register" && (
+          ) : mode === "register" ? (
             <>
               <div className="px-6 sm:px-10 py-7 sm:py-10 flex flex-col justify-center text-center">
                 <Logo />
@@ -881,7 +891,7 @@ export default function AuthModal({
                 />
               </div>
             </>
-          )}
+          ) : null}
         </div>
       </aside>
     </div>
