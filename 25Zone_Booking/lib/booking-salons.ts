@@ -15,6 +15,9 @@ export type BookingSalon = {
   ward: string;
   email: string | null;
   isActive: boolean;
+  latitude?: number;
+  longitude?: number;
+  distanceValue?: number; // calculated distance in km
 };
 
 type RawStore = {
@@ -80,11 +83,40 @@ const normalizeFallbackSalon = (salon: (typeof FALLBACK_SALONS)[number]): Bookin
 export const fallbackBookingSalons: BookingSalon[] =
   FALLBACK_SALONS.map(normalizeFallbackSalon);
 
+// Mock coordinates for different provinces
+const getMockCoordinates = (province: string, id: number) => {
+  const p = province.toLowerCase();
+  
+  let baseLat = 10.762622; // Default HCMC
+  let baseLng = 106.660172;
+  
+  if (p.includes("hà nội")) {
+    baseLat = 21.028511;
+    baseLng = 105.804817;
+  } else if (p.includes("đà nẵng") || p.includes("da nang")) {
+    baseLat = 16.054407;
+    baseLng = 108.202167;
+  } else if (p.includes("cần thơ")) {
+    baseLat = 10.045162;
+    baseLng = 105.746854;
+  } else if (p.includes("hải phòng")) {
+    baseLat = 20.844912;
+    baseLng = 106.688084;
+  }
+
+  // Add a small pseudo-random offset based on ID so they don't all stack up
+  return {
+    latitude: baseLat + (id % 10) * 0.01 - 0.05,
+    longitude: baseLng + (id % 10) * 0.01 - 0.05,
+  };
+};
+
 export const mapRawStoreToBookingSalon = (store: RawStore): BookingSalon => {
   const id = Number(store.Id_store || 0);
   const isActive = Number(store.Status ?? 1) === 1;
   const province = cleanText(store.Province);
   const ward = cleanText(store.Ward);
+  const coords = getMockCoordinates(province, id);
 
   return {
     id,
@@ -102,6 +134,8 @@ export const mapRawStoreToBookingSalon = (store: RawStore): BookingSalon => {
     ward,
     email: cleanText(store.Email) || null,
     isActive,
+    latitude: coords.latitude,
+    longitude: coords.longitude,
   };
 };
 

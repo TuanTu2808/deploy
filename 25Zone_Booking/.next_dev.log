@@ -1,0 +1,14 @@
+
+> 25zone-next@0.1.0 dev
+> next dev -p 3003
+
+   ▲ Next.js 15.5.14
+   - Local:        http://localhost:3003
+   - Network:      http://192.168.0.101:3003
+
+ ✓ Starting...
+ ✓ Ready in 3.1s
+ ○ Compiling /chonsalon ...
+ ✓ Compiled /chonsalon in 5.6s (657 modules)
+ GET /chonsalon 200 in 6243ms
+ ✓ Compiled in 712ms (255 modules)
