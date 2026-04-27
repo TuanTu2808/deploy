@@ -1,27 +1,6 @@
 import express from "express";
-import fs from "fs";
-import path from "path";
-import multer from "multer";
 import database from "../database.js";
 import { hashPassword } from "../utils/password.js";
-
-const uploadDir = path.join(process.cwd(), "public", "image", "user");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadDir),
-  filename: (_req, file, cb) => {
-    const safeOriginal = file.originalname.replace(/[^\w.-]/g, "_");
-    cb(null, `${Date.now()}-${safeOriginal}`);
-  },
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-});
 
 const router = express.Router();
 
@@ -131,14 +110,11 @@ router.get("/", async (req, res) => {
         u.Id_store,
         s.Name_store,
         COUNT(DISTINCT a.Id_address_ship) AS Total_addresses,
-        COUNT(DISTINCT o.Id_order) AS Total_orders,
-        COUNT(DISTINCT b.Id_booking) AS Total_completed_bookings,
-        COUNT(DISTINCT b.Phone) AS Total_Unique_Customers
+        COUNT(DISTINCT o.Id_order) AS Total_orders
       FROM Users u
       LEFT JOIN Stores s ON s.Id_store = u.Id_store
       LEFT JOIN Address_Ship a ON a.Id_user = u.Id_user
       LEFT JOIN Orders o ON o.Id_user = u.Id_user
-      LEFT JOIN Bookings b ON b.Id_stylist = u.Id_user AND b.Status = 'completed'
     `;
     const params = [];
     const where = [];
@@ -179,7 +155,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", upload.single("avatar"), async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const name = normalizeText(req.body?.Name_user);
     const email = normalizeEmail(req.body?.Email);
@@ -188,7 +164,7 @@ router.post("/", upload.single("avatar"), async (req, res) => {
     const address = normalizeText(req.body?.Address) || "Chưa cập nhật";
     const role = normalizeText(req.body?.role || "user");
     const idStore = Number(req.body?.Id_store) || 1;
-    const image = req.file ? `/image/user/${req.file.filename}` : (normalizeText(req.body?.Image) || null);
+    const image = normalizeText(req.body?.Image) || null;
 
     if (!name || !email || !phone || !password) {
       return res.status(400).json({ message: "Thiếu thông tin bắt buộc." });
@@ -507,7 +483,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.put("/:id", upload.single("avatar"), async (req, res) => {
+router.put("/:id", async (req, res) => {
   try {
     const userId = Number(req.params.id);
     if (!userId) {
@@ -525,7 +501,7 @@ router.put("/:id", upload.single("avatar"), async (req, res) => {
     const address = normalizeText(req.body?.Address) || current.Address || "Chưa cập nhật";
     const role = normalizeText(req.body?.role || current.role);
     const idStore = Number(req.body?.Id_store || current.Id_store || 1);
-    const image = req.file ? `/image/user/${req.file.filename}` : (normalizeText(req.body?.Image) || current.Image || null);
+    const image = normalizeText(req.body?.Image) || current.Image || null;
     const nextPassword = req.body?.Pass_word ? String(req.body.Pass_word) : null;
 
     if (!ALLOWED_ROLES.includes(role)) {

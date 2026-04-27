@@ -1,27 +1,8 @@
 import express from "express";
 import database from "../database.js";
 import { requireAuth } from "../middleware/auth.js";
-import fs from "fs";
-import path from "path";
-import multer from "multer";
 
 const router = express.Router();
-
-const resultUploadDir = path.join(process.cwd(), "public", "image", "results");
-fs.mkdirSync(resultUploadDir, { recursive: true });
-
-const resultStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, resultUploadDir),
-  filename: (_req, file, cb) => {
-    const safeOriginal = file.originalname.replace(/[^\w.-]/g, "_");
-    cb(null, `${Date.now()}-${safeOriginal}`);
-  },
-});
-
-const uploadResult = multer({
-  storage: resultStorage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-});
 
 const normalizePhone = (value) => String(value ?? "").replace(/[^\d]/g, "");
 const ALLOWED_STATUS = ["pending", "confirmed", "processing", "completed", "cancelled"];
@@ -35,17 +16,6 @@ const createError = (message, status = 400) => {
   error.status = status;
   return error;
 };
-const toMinutes = (timeStr) => {
-  if (!timeStr) return 0;
-  if (typeof timeStr === 'number') return timeStr;
-  const StringTime = String(timeStr);
-  if (!StringTime.includes(':')) return Number(StringTime) || 0;
-  const parts = StringTime.split(':');
-  const h = Number(parts[0]) || 0;
-  const m = Number(parts[1]) || 0;
-  return h * 60 + m;
-};
-
 const toTimeString = (minutes) => {
   const total = Number(minutes);
   if (!Number.isFinite(total)) return "00:00:00";
@@ -73,9 +43,6 @@ router.get("/me", requireAuth, async (req, res) => {
         b.Note,
         b.Created_booking,
         b.Id_store,
-        b.Description_cancel,
-        b.Discount_amount,
-        b.Final_price,
         s.Name_store AS Store_name,
         s.Address AS Store_address,
         s.Province AS Store_province,
@@ -186,9 +153,6 @@ router.get("/me/:bookingId", requireAuth, async (req, res) => {
           b.Note,
           b.Created_booking,
           b.Id_store,
-          b.Description_cancel,
-          b.Discount_amount,
-          b.Final_price,
           s.Name_store AS Store_name,
           s.Address AS Store_address,
           s.Province AS Store_province,
@@ -220,16 +184,14 @@ router.get("/me/:bookingId", requireAuth, async (req, res) => {
           bd.Id_services,
           bd.Id_combo,
           sv.Name AS Service_name,
-          cb.Name AS Combo_name,
-          br.Rating AS Item_rating
+          cb.Name AS Combo_name
         FROM Booking_detail bd
         LEFT JOIN Services sv ON sv.Id_services = bd.Id_services
         LEFT JOIN Combos cb ON cb.Id_combo = bd.Id_combo
-        LEFT JOIN booking_rating br ON br.Id_booking_detail = bd.Id_Booking_detail AND br.Id_user = ?
         WHERE bd.Id_booking = ?
         ORDER BY bd.Id_Booking_detail ASC
       `,
-      [userId, bookingId]
+      [bookingId]
     );
 
     const items = details.map((item) => ({
@@ -240,7 +202,6 @@ router.get("/me/:bookingId", requireAuth, async (req, res) => {
       Name: item.Combo_name || item.Service_name || "Dich vu",
       Price_at_booking: Number(item.Price_at_booking || 0),
       Duration_time: item.Duration_time,
-      Rating: item.Item_rating || null,
     }));
 
     const durationMinutes = items.reduce((sum, item) => {
@@ -250,18 +211,12 @@ router.get("/me/:bookingId", requireAuth, async (req, res) => {
       return sum + Number(h || 0) * 60 + Number(m || 0);
     }, 0);
 
-    const [imageRows] = await database.query(
-      `SELECT Image FROM booking_result_images WHERE Id_booking = ?`,
-      [bookingId]
-    );
-
     return res.json({
       booking: {
         ...booking,
         Booking_code: toBookingCode(booking.Id_booking),
         Duration_minutes: durationMinutes,
         items,
-        resultImages: imageRows.map(r => r.Image).filter(Boolean),
       },
     });
   } catch (error) {
@@ -318,25 +273,13 @@ router.get("/", async (req, res) => {
       GROUP BY bd.Id_booking
     `);
 
-    const [durationRows] = await database.query(`
-      SELECT Id_booking AS booking_id, Duration_time
-      FROM Booking_detail
-    `);
-
     const serviceMap = new Map(
       serviceRows.map((row) => [row.booking_id, row.service_names])
     );
 
-    const durationMap = {};
-    for (const r of durationRows) {
-      if (!durationMap[r.booking_id]) durationMap[r.booking_id] = 0;
-      durationMap[r.booking_id] += toMinutes(r.Duration_time);
-    }
-
     const data = rows.map((row) => ({
       ...row,
       service_names: serviceMap.get(row.id) || null,
-      total_duration_minutes: durationMap[row.id] || 0
     }));
 
     res.json(data);
@@ -349,31 +292,13 @@ router.get("/", async (req, res) => {
 router.post("/", async (req, res) => {
   const phone = normalizePhone(req.body?.phone);
   const storeId = Number(req.body?.storeId);
-  
-  let stylistId = req.body?.stylistId;
-  stylistId = (stylistId !== undefined && stylistId !== null) ? Number(stylistId) : null;
-  if (stylistId === -1 || Number.isNaN(stylistId)) stylistId = null;
-
+  const stylistId = Number(req.body?.stylistId);
   const date = String(req.body?.date ?? "").trim();
   const time = String(req.body?.time ?? "").trim();
   const serviceIds = Array.isArray(req.body?.serviceIds)
-    ? Array.from(
-      new Set(
-        req.body.serviceIds
-          .map((id) => Number(id))
-          .filter((id) => Number.isFinite(id) && id > 0)
-      )
-    ).slice(0, 3)
+    ? req.body.serviceIds.map((id) => Number(id)).filter(Boolean)
     : [];
-  const comboIds = Array.isArray(req.body?.comboIds)
-    ? Array.from(
-      new Set(
-        req.body.comboIds
-          .map((id) => Number(id))
-          .filter((id) => Number.isFinite(id) && id > 0)
-      )
-    )
-    : [];
+
   if (!phone) {
     return res.status(400).json({ message: "Vui lòng nhập số điện thoại." });
   }
@@ -382,22 +307,23 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ message: "Số điện thoại không hợp lệ." });
   }
 
-  if (!storeId) {
-    return res.status(400).json({ message: "Thiếu thông tin salon." });
+  if (!storeId || !stylistId) {
+    return res.status(400).json({ message: "Thiếu thông tin salon/stylist." });
   }
 
   if (!date || !time) {
     return res.status(400).json({ message: "Thiếu ngày hoặc giờ hẹn." });
   }
 
-  if (serviceIds.length === 0 && comboIds.length === 0) {
-    return res.status(400).json({ message: "Chưa chọn dịch vụ hoặc combo." });
+  if (serviceIds.length === 0) {
+    return res.status(400).json({ message: "Chưa chọn dịch vụ." });
   }
 
   const connection = await database.getConnection();
 
   try {
     await connection.beginTransaction();
+
     const [storeRows] = await connection.query(
       "SELECT Id_store FROM Stores WHERE Id_store = ? LIMIT 1",
       [storeId]
@@ -406,123 +332,33 @@ router.post("/", async (req, res) => {
       throw createError("Salon không tồn tại.");
     }
 
-    // ===== CHECK STYLIST =====
-    if (stylistId !== null) {
-      const [stylistRows] = await connection.query(
-        "SELECT Id_user FROM Users WHERE Id_user = ? LIMIT 1",
-        [stylistId]
-      );
-      if (!stylistRows.length) {
-        throw createError("Stylist không tồn tại.");
-      }
+    const [stylistRows] = await connection.query(
+      "SELECT Id_user FROM Users WHERE Id_user = ? LIMIT 1",
+      [stylistId]
+    );
+    if (!stylistRows.length) {
+      throw createError("Stylist không tồn tại.");
     }
 
-    // ===== FETCH SERVICES =====
-    let serviceRows = [];
-    if (serviceIds.length > 0) {
-      const [rows] = await connection.query(
-        `
-        SELECT Id_services, Price, Sale_Price, Duration_time
-        FROM Services
-        WHERE Id_services IN (?)
-        `,
-        [serviceIds]
-      );
+    const [serviceRows] = await connection.query(
+      `
+      SELECT Id_services, Price, Sale_Price, Duration_time
+      FROM Services
+      WHERE Id_services IN (?)
+      `,
+      [serviceIds]
+    );
 
-      if (rows.length !== serviceIds.length) {
-        throw createError("Dịch vụ không hợp lệ.");
-      }
-
-      serviceRows = rows;
+    if (serviceRows.length !== serviceIds.length) {
+      throw createError("Dịch vụ không hợp lệ.");
     }
 
-    // ===== FETCH COMBOS =====
-    let comboRows = [];
-    if (comboIds.length > 0) {
-      const [rows] = await connection.query(
-        `
-        SELECT Id_combo, Price, Duration_time
-        FROM Combos
-        WHERE Id_combo IN (?)
-        `,
-        [comboIds]
-      );
-
-      if (rows.length !== comboIds.length) {
-        throw createError("Combo không hợp lệ.");
-      }
-
-      comboRows = rows;
-    }
-
-    // ===== CALCULATE TOTAL =====
-    const totalService = serviceRows.reduce((sum, item) => {
+    const total = serviceRows.reduce((sum, item) => {
       const price =
-        Number(item.Sale_Price) > 0
-          ? Number(item.Sale_Price)
-          : Number(item.Price);
+        Number(item.Sale_Price) > 0 ? Number(item.Sale_Price) : Number(item.Price);
       return sum + (Number.isFinite(price) ? price : 0);
     }, 0);
 
-    const totalCombo = comboRows.reduce((sum, item) => {
-      const price = Number(item.Price);
-      return sum + (Number.isFinite(price) ? price : 0);
-    }, 0);
-
-    const total = totalService + totalCombo;
-
-    let voucherCode = String(req.body?.voucherCode || "").trim();
-    let voucherData = null;
-    let discountAmount = 0;
-    let finalTotal = total - discountAmount ;
-
-    if (voucherCode) {
-      const [vouchers] = await connection.query(
-        "SELECT * FROM vouchers_booking WHERE Voucher_code = ? LIMIT 1",
-        [voucherCode]
-      );
-      if (!vouchers || vouchers.length === 0) {
-        throw createError("Mã voucher không tồn tại hoặc không hợp lệ.");
-      }
-
-      const voucher = vouchers[0];
-
-      if (Number(voucher.Status) !== 1) {
-        throw createError("Voucher hiện không khả dụng.");
-      }
-
-      const now = new Date();
-      const startDate = new Date(voucher.Start_date);
-      const endDate = new Date(voucher.End_date);
-      if (now < startDate || now > endDate) {
-        throw createError("Mã voucher đã hết hạn hoặc chưa đến thời gian áp dụng.");
-      }
-
-      const minValue = Number(voucher.Min_order_value || 0);
-      if (total < minValue) {
-        throw createError(
-          `Tổng đơn phải lớn hơn hoặc bằng ${minValue.toLocaleString("vi-VN")} VNĐ để sử dụng mã.`
-        );
-      }
-
-      const discountValue = Number(voucher.Discount_value || 0);
-      if (voucher.Discount_type === "percent") {
-        discountAmount = Math.floor((total * discountValue) / 100);
-      } else {
-        discountAmount = discountValue;
-      }
-
-      const maxDiscount = Number(voucher.Max_discount_amount || 0);
-      if (maxDiscount > 0) {
-        discountAmount = Math.min(discountAmount, maxDiscount);
-      }
-
-      if (discountAmount < 0) discountAmount = 0;
-      finalTotal = Math.max(0, total - discountAmount);
-      voucherData = voucher;
-    }
-
-    // ===== GET / CREATE USER =====
     const [userRows] = await connection.query(
       "SELECT Id_user FROM Users WHERE Phone = ? LIMIT 1",
       [phone]
@@ -552,217 +388,51 @@ router.post("/", async (req, res) => {
       userId = userResult.insertId;
     }
 
-// ===== CHECK EXISTING BOOKING (SAME DAY - NOT COMPLETED) =====
-const [existingBooking] = await connection.query(
-  `
-  SELECT Id_booking
-  FROM Bookings
-  WHERE Id_user = ?
-    AND Booking_date = ?
-    AND Status IN ('pending', 'confirmed', 'processing')
-  LIMIT 1
-  `,
-  [userId, date] // ⚠️ dùng date user chọn
-);
-
-if (existingBooking.length > 0) {
-  throw createError(
-    "Bạn đã có lịch hẹn trong ngày này chưa hoàn thành. Vui lòng hoàn tất trước khi đặt lịch mới."
-  );
-}
-
-    // ===== CREATE BOOKING =====
     const startTime = `${date} ${time}:00`;
-    let note = "Đặt lịch theo luồng website.";
-    if (voucherData) {
-      note += ` Áp dụng voucher: ${voucherCode}, giảm ${discountAmount.toLocaleString("vi-VN")} VNĐ`;
-    }
-
+    const note = "Đặt lịch theo luồng website.";
+    
     const [bookingResult] = await connection.query(
-  `
-  INSERT INTO Bookings
-  (Booking_date, Start_time, Phone, Note, Total_price, Discount_amount, Final_price, Status, Id_store, Id_user, Id_stylist)
-  VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)
-  `,
-      [
-    date,
-    startTime,
-    phone,
-    note,
-
-    total,           
-    discountAmount,  
-    finalTotal,      
-
-    storeId,
-    userId,
-    stylistId
-  ]
+      `
+      INSERT INTO Bookings
+      (Booking_date, Start_time,Phone, Note, Total_price, Status, Id_store, Id_user, Id_stylist)
+      VALUES (?, ?, ?, ?,?, 'pending', ?, ?, ?)
+      `,
+      [date, startTime,phone, note, total, storeId, userId, stylistId]
     );
 
     const bookingId = bookingResult.insertId;
-
-    // ===== BUILD BOOKING DETAILS =====
-    const serviceDetails = serviceRows.map((service) => {
+    const detailValues = serviceRows.map((service) => {
       const price =
         Number(service.Sale_Price) > 0
           ? Number(service.Sale_Price)
           : Number(service.Price);
-
       const duration = String(service.Duration_time ?? "");
       const durationTime =
         duration.includes(":") ? duration : toTimeString(duration);
-
       return [price, durationTime, bookingId, service.Id_services, null];
     });
 
-    const comboDetails = comboRows.map((combo) => {
-      const price = Number(combo.Price);
-
-      const duration = String(combo.Duration_time ?? "");
-      const durationTime =
-        duration.includes(":") ? duration : toTimeString(duration);
-
-      return [price, durationTime, bookingId, null, combo.Id_combo];
-    });
-
-    const detailValues = [...serviceDetails, ...comboDetails];
-
-    // ===== INSERT DETAILS =====
-    if (detailValues.length > 0) {
-      await connection.query(
-        `
-        INSERT INTO Booking_detail
-        (Price_at_booking, Duration_time, Id_booking, Id_services, Id_combo)
-        VALUES ?
-        `,
-        [detailValues]
-      );
-    }
-
-// ===== UPDATE SLOT STATUS (MULTI-SLOT LOCKING) =====
-const totalDurationMinutes =
-  serviceRows.reduce((sum, s) => sum + toMinutes(s.Duration_time), 0) +
-  comboRows.reduce((sum, c) => sum + toMinutes(c.Duration_time), 0);
-
-const slotDurationMinutes = 30;
-const numSlotsToLock = Math.ceil(totalDurationMinutes / slotDurationMinutes);
-
-if (stylistId) {
-  const [shiftRows] = await connection.query(
-    "SELECT Id_work_shifts FROM Work_shifts WHERE Id_user = ? AND Shift_date = ?",
-    [stylistId, date]
-  );
-
-  if (shiftRows.length > 0) {
-    const shiftId = shiftRows[0].Id_work_shifts;
-    const normalizedStartTime = time.length === 5 ? `${time}:00` : time;
-
-    const [allSlots] = await connection.query(
-      "SELECT Id_work_shifts_hour, Hours, Status FROM Work_shifts_hours WHERE Id_work_shifts = ? ORDER BY Hours ASC",
-      [shiftId]
+    await connection.query(
+      `
+      INSERT INTO Booking_detail
+      (Price_at_booking, Duration_time, Id_booking, Id_services, Id_combo)
+      VALUES ?
+      `,
+      [detailValues]
     );
 
-    const startIndex = allSlots.findIndex(
-      (s) =>
-        String(s.Hours).substring(0, 5) ===
-        normalizedStartTime.substring(0, 5)
-    );
-
-    if (startIndex !== -1) {
-      const slotsToLock = allSlots.slice(
-        startIndex,
-        startIndex + numSlotsToLock
-      );
-
-      // ✅ CHECK TRÙNG SLOT (QUAN TRỌNG)
-      const conflictSlots = slotsToLock.filter((s) => s.Status === 0);
-
-      if (conflictSlots.length > 0) {
-        throw createError(
-          "Khung giờ này đã được đặt. Vui lòng chọn thời gian khác."
-        );
-      }
-
-      const slotIds = slotsToLock.map((s) => s.Id_work_shifts_hour);
-
-      if (slotIds.length > 0) {
-        await connection.query(
-          "UPDATE Work_shifts_hours SET Status = 0 WHERE Id_work_shifts_hour IN (?)",
-          [slotIds]
-        );
-      }
-    }
-  }
-}
     await connection.commit();
 
-    res.json({
-      message: "Đặt lịch thành công.",
-      bookingId,
-      total,
-      discountAmount,
-      finalTotal,
-      voucherCode: voucherData ? voucherCode : null,
-    });
+    res.json({ message: "Đặt lịch thành công.", bookingId });
   } catch (error) {
     await connection.rollback();
     const status = typeof error?.status === "number" ? error.status : 500;
-
     console.error("Lỗi tạo lịch hẹn:", error);
-
     res.status(status).json({
-      message:
-        status === 500
-          ? "Lỗi server."
-          : error?.message || "Lỗi dữ liệu.",
+      message: status === 500 ? "Lỗi server." : error?.message || "Lỗi dữ liệu.",
     });
   } finally {
     connection.release();
-  }
-});
-
-router.post("/rating", requireAuth, async (req, res) => {
-  try {
-    const userId = req.auth.id;
-    const { detailId, rating } = req.body;
-    
-    if (!detailId || !rating || rating < 1 || rating > 5) {
-      return res.status(400).json({ message: "Dữ liệu đánh giá không hợp lệ." });
-    }
-
-    const [bookingRows] = await database.query(`
-      SELECT b.Status
-      FROM Booking_detail bd
-      INNER JOIN Bookings b ON b.Id_booking = bd.Id_booking
-      WHERE bd.Id_Booking_detail = ? AND b.Id_user = ?
-    `, [detailId, userId]);
-
-    if (!bookingRows.length) {
-      return res.status(404).json({ message: "Không tìm thấy dịch vụ." });
-    }
-    if (bookingRows[0].Status !== 'completed') {
-      return res.status(400).json({ message: "Chỉ có thể đánh giá dịch vụ đã hoàn thành." });
-    }
-
-    const [existing] = await database.query(`
-      SELECT Id_Booking_rating FROM booking_rating WHERE Id_booking_detail = ? AND Id_user = ?
-    `, [detailId, userId]);
-
-    if (existing.length > 0) {
-      await database.query(`
-        UPDATE booking_rating SET Rating = ? WHERE Id_Booking_rating = ?
-      `, [rating, existing[0].Id_Booking_rating]);
-    } else {
-      await database.query(`
-        INSERT INTO booking_rating (Id_booking_detail, Id_user, Rating) VALUES (?, ?, ?)
-      `, [detailId, userId, rating]);
-    }
-
-    return res.json({ message: "Đánh giá thành công." });
-  } catch (error) {
-    console.error("Lỗi đánh giá dịch vụ:", error);
-    return res.status(500).json({ message: "Lỗi server." });
   }
 });
 
@@ -772,7 +442,7 @@ router.patch("/:id", async (req, res) => {
     return res.status(400).json({ message: "Id lịch hẹn không hợp lệ." });
   }
 
-  const { status, stylistId, date, time, note, description_cancel } = req.body;
+  const { status, stylistId, date, time, note } = req.body;
   const updates = [];
   const params = [];
   const allowedStatuses = [
@@ -789,11 +459,6 @@ router.patch("/:id", async (req, res) => {
     }
     updates.push("Status = ?");
     params.push(String(status));
-  }
-
-  if (description_cancel !== undefined) {
-    updates.push("Description_cancel = ?");
-    params.push(String(description_cancel || ""));
   }
 
   if (stylistId) {
@@ -822,140 +487,19 @@ router.patch("/:id", async (req, res) => {
     return res.status(400).json({ message: "Không có dữ liệu để cập nhật." });
   }
 
-  const connection = await database.getConnection();
   try {
-    await connection.beginTransaction();
-
-    const [result] = await connection.query(
+    const [result] = await database.query(
       `UPDATE Bookings SET ${updates.join(", ")} WHERE Id_booking = ?`,
       [...params, bookingId]
     );
 
     if (result.affectedRows === 0) {
-      await connection.rollback();
       return res.status(404).json({ message: "Không tìm thấy lịch hẹn." });
     }
 
-    // ===== UPDATE SLOT STATUS ON CANCEL/CONFIRM =====
-    if (status) {
-      const [b] = await connection.query(
-        "SELECT Id_stylist, Booking_date, Start_time FROM Bookings WHERE Id_booking = ?",
-        [bookingId]
-      );
-      if (b.length > 0) {
-        const { Id_stylist, Booking_date, Start_time } = b[0];
-        const [shiftRows] = await connection.query(
-          "SELECT Id_work_shifts FROM Work_shifts WHERE Id_user = ? AND Shift_date = ?",
-          [Id_stylist, Booking_date]
-        );
-
-        if (shiftRows.length > 0) {
-          const shiftId = shiftRows[0].Id_work_shifts;
-
-          // Get HH:mm:00 from Start_time
-          let timeOnly = "";
-          if (Start_time instanceof Date) {
-            timeOnly = Start_time.toTimeString().split(" ")[0];
-          } else {
-            const parts = String(Start_time).split(" ");
-            timeOnly = parts.length > 1 ? parts[1] : parts[0];
-            if (timeOnly.length === 5) timeOnly += ":00";
-          }
-
-          // Lấy duration từ Booking_detail
-          const [details] = await connection.query(
-            "SELECT Duration_time FROM Booking_detail WHERE Id_booking = ?",
-            [bookingId]
-          );
-          let totalDurationMin = details.reduce((sum, item) => sum + toMinutes(item.Duration_time), 0);
-          const numSlotsToUpdate = Math.max(1, Math.ceil(totalDurationMin / 30));
-
-          // Lấy tất cả các slot của ca này
-          const [allSlots] = await connection.query(
-            "SELECT Id_work_shifts_hour, Hours, Status FROM Work_shifts_hours WHERE Id_work_shifts = ? ORDER BY Hours ASC",
-            [shiftId]
-          );
-
-          const startIndex = allSlots.findIndex(s => String(s.Hours).substring(0, 5) === timeOnly.substring(0, 5));
-
-          if (startIndex !== -1) {
-            const slotsToUpdate = allSlots.slice(startIndex, startIndex + numSlotsToUpdate);
-            const slotIds = slotsToUpdate.map(s => s.Id_work_shifts_hour);
-            if (slotIds.length > 0) {
-              const newSlotStatus = status === "cancelled" ? 1 : 0;
-              await connection.query(
-                "UPDATE Work_shifts_hours SET Status = ? WHERE Id_work_shifts_hour IN (?)",
-                [newSlotStatus, slotIds]
-              );
-              console.log(`Updated ${slotIds.length} slots to status ${newSlotStatus} for booking ${bookingId}`);
-            }
-          }
-        }
-      }
-    }
-
-    await connection.commit();
     res.json({ message: "Cập nhật thành công." });
   } catch (error) {
-    await connection.rollback();
-    console.error("Lỗi cập nhật lịch hẹn stateful:", error);
-    res.status(500).json({ message: "Lỗi server." });
-  } finally {
-    connection.release();
-  }
-});
-
-// GET images for booking
-router.get("/:id/results", async (req, res) => {
-  try {
-    const [rows] = await database.query(
-      "SELECT Image FROM booking_result_images WHERE Id_booking = ?",
-      [req.params.id]
-    );
-    res.json({ images: rows.map(r => r.Image) });
-  } catch(e) {
-    console.error("GET results error:", e);
-    res.status(500).json({ message: "Lỗi server" });
-  }
-});
-
-// POST images for booking
-router.post("/:id/results", uploadResult.array("images", 5), async (req, res) => {
-  try {
-    const bookingId = req.params.id;
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ message: "Vui lòng chọn ảnh." });
-    }
-
-    const connection = await database.getConnection();
-    try {
-      await connection.beginTransaction();
-
-      const insertData = req.files.map((file) => {
-        return [bookingId, `/image/results/${file.filename}`];
-      });
-
-      await connection.query(
-        "INSERT INTO booking_result_images (Id_booking, Image) VALUES ?",
-        [insertData]
-      );
-
-      await connection.commit();
-      
-      const [rows] = await connection.query(
-        "SELECT Image FROM booking_result_images WHERE Id_booking = ?",
-        [bookingId]
-      );
-
-      res.json({ message: "Đã tải lên hình ảnh kết quả thành công.", uploadedCount: req.files.length, images: rows.map(r => r.Image) });
-    } catch (err) {
-      await connection.rollback();
-      throw err;
-    } finally {
-      connection.release();
-    }
-  } catch (error) {
-    console.error("Lỗi upload ảnh kết quả:", error);
+    console.error("Lỗi cập nhật lịch hẹn:", error);
     res.status(500).json({ message: "Lỗi server." });
   }
 });

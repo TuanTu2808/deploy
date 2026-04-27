@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import SmoothScroll from "@/app/components/SmoothScroll";
+import AppProviders from "@/app/components/providers/AppProviders";
 import ClientLayout from "./ClientLayout";
 
 const inter = Inter({
@@ -31,11 +32,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
 
       <body className="font-spline text-[#1A1A1A] antialiased" suppressHydrationWarning>
-        <ClientLayout>
+        <AppProviders>
           <SmoothScroll />
           {children}
-        </ClientLayout>
-        </body>
+        </AppProviders>
+      </body>
     </html>
   );
 }

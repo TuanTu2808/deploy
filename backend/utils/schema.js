@@ -85,12 +85,3 @@ export const ensureAuthSchema = async () => {
     );
   }
 };
-
-export const ensureComboSchema = async () => {
-  const hasCombos = await tableExists("Combos");
-  if (!hasCombos) return;
-
-  if (!(await columnExists("Combos", "Image_URL"))) {
-    await database.query("ALTER TABLE Combos ADD COLUMN Image_URL TEXT NULL");
-  }
-};

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/app/components/auth/AuthProvider";
 import { loadToken } from "@/lib/auth-storage";
+import { getUserStorageKey } from "@/lib/user-storage";
 
 type TabKey = "desc" | "ingredient" | "guide";
 
@@ -28,35 +29,42 @@ interface Comment {
   user_name?: string;
 }
 
-type RelatedProduct = {
-  title: string;
-  category: string;
-  price: string;
-  image: string;
-};
+function RelatedProductCard({ p }: { p: any }) {
+  const router = useRouter();
+  const thumbnail = (() => {
+    if (!p.Thumbnail) return "/img/placeholder.png";
+    try {
+      const parsed = JSON.parse(p.Thumbnail);
+      return parsed[0].startsWith("http") ? parsed[0] : `http://localhost:5001${parsed[0]}`;
+    } catch {
+      return p.Thumbnail.startsWith("/") ? `http://localhost:5001${p.Thumbnail}` : `http://localhost:5001/${p.Thumbnail}`;
+    }
+  })();
 
-function RelatedProductCard({ p }: { p: RelatedProduct }) {
   return (
-    <div className="group bg-white rounded-[34px] shadow-2xl overflow-hidden flex flex-col">
+    <div 
+      className="group bg-white rounded-[34px] shadow-2xl overflow-hidden flex flex-col cursor-pointer transition-transform hover:-translate-y-1"
+      onClick={() => router.push(`/products/${p.Id_product}`)}
+    >
       {/* IMAGE */}
       <div className="relative overflow-hidden rounded-t-[34px]">
         <div className="aspect-[4/4]">
           <img
-            src={p.image}
-            alt={p.title}
-            className="w-full h-full object-cover"
+            src={thumbnail}
+            alt={p.Name_product}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         </div>
       </div>
 
-      {/* CONTENT (giữ style gốc, chỉ responsive nhẹ cho mobile) */}
+      {/* CONTENT */}
       <div className="bg-white rounded-t-[34px] -mt-6 sm:-mt-8 px-4 sm:px-6 lg:px-8 pt-5 sm:pt-7 lg:pt-8 pb-6 sm:pb-8 lg:pb-10 relative flex-1 flex flex-col">
-        <h3 className="text-[18px] sm:text-[26px] lg:text-[34px] leading-none font-extrabold text-[#003366] uppercase">
-          {p.title}
+        <h3 className="text-[17px] sm:text-[20px] lg:text-[24px] leading-tight font-extrabold text-[#003366] uppercase line-clamp-2 min-h-[2.5em]">
+          {p.Name_product}
         </h3>
 
-        <p className="mt-3 sm:mt-4 text-[#003366] font-semibold text-sm sm:text-base">
-          {p.category}
+        <p className="mt-2 sm:mt-3 text-[#003366] font-semibold text-sm sm:text-base">
+          {p.Category_Name || p.Category || "Sản phẩm"}
         </p>
         <div className="h-[4px] lg:h-[5px] w-12 sm:w-14 lg:w-16 bg-[#003366] mt-2"></div>
 
@@ -67,24 +75,21 @@ function RelatedProductCard({ p }: { p: RelatedProduct }) {
         </p>
 
         <div className="mt-2 flex items-center mb-4 sm:mb-6">
-          <span className="text-[#8b1e1e] font-extrabold text-[28px] sm:text-[40px] lg:text-[48px] leading-none tabular-nums">
-            {p.price}
+          <span className="text-[#8b1e1e] font-extrabold text-[24px] sm:text-[32px] lg:text-[36px] leading-none tabular-nums">
+            {(p.Sale_Price || p.Price || 0).toLocaleString('vi-VN')}₫
           </span>
-
-          <button
-            className="ml-auto w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#003366] text-white flex items-center justify-center hover:bg-[#00264d] transition"
-            aria-label="Yêu thích"
-            type="button"
-          >
-            <i className="fa-solid fa-heart text-base sm:text-lg"></i>
-          </button>
         </div>
 
         <button
-          className="mt-auto w-full py-3 sm:py-4 rounded-2xl bg-[#003366] text-white font-extrabold tracking-wide hover:bg-[#00264d] transition"
+          className="mt-auto w-full py-3 sm:py-4 rounded-2xl bg-[#003366] text-white font-extrabold tracking-wide hover:bg-[#00264d] active:scale-95 transition"
           type="button"
+          onClick={(e) => {
+             e.stopPropagation();
+             // addToCart logic or push to product
+             router.push(`/products/${p.Id_product}`);
+          }}
         >
-          MUA NGAY
+          XEM CHI TIẾT
         </button>
       </div>
     </div>
@@ -95,6 +100,7 @@ export default function ProductDetailPage() {
   const { id } = useParams();
   const [product, setProduct] = useState<Product | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabKey>("desc");
   const [expanded, setExpanded] = useState(false);
@@ -102,7 +108,9 @@ export default function ProductDetailPage() {
   const [showReview, setShowReview] = useState(false);
   const [newRating, setNewRating] = useState(5);
   const [newContent, setNewContent] = useState("");
-
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupProduct, setPopupProduct] = useState<Product | null>(null);
+  const [quantity, setQuantity] = useState(1);
   const router = useRouter();
   const { user } = useAuth();
 
@@ -110,22 +118,43 @@ export default function ProductDetailPage() {
     if (!id) return;
 
     const fetchData = async () => {
+      if (!id) return;
+
       try {
         setLoading(true);
-        // Fetch product
-        const productRes = await fetch(`http://localhost:5000/api/sanpham/${id}`);
-        if (!productRes.ok) throw new Error("Không thể lấy sản phẩm");
+
+        const productRes = await fetch(
+          `http://localhost:5001/api/sanpham/${id}`,
+        );
+
+        if (!productRes.ok) {
+          throw new Error("Không thể lấy sản phẩm");
+        }
+
         const productData = await productRes.json();
         setProduct(productData);
 
-        // Fetch comments
         const commentsRes = await fetch(
-          `http://localhost:5000/api/product-comments/${id}`
+          `http://localhost:5001/api/product-comments/${id}`,
         );
+
         if (commentsRes.ok) {
           const commentsData = await commentsRes.json();
           setComments(commentsData);
         }
+
+        const relatedRes = await fetch("http://localhost:5001/api/sanpham");
+        if (relatedRes.ok) {
+          const allProducts = await relatedRes.json();
+          const filtered = allProducts.filter((p: any) => String(p.Id_product) !== String(id) && p.Category_Name === productData.Category_Name);
+          let finalRelated = filtered.slice(0, 4);
+          if (finalRelated.length < 4) {
+            const others = allProducts.filter((p: any) => String(p.Id_product) !== String(id) && !finalRelated.find((fr: any) => fr.Id_product === p.Id_product));
+            finalRelated = [...finalRelated, ...others.slice(0, 4 - finalRelated.length)];
+          }
+          setRelatedProducts(finalRelated);
+        }
+
       } catch (error) {
         console.error("Lỗi:", error);
       } finally {
@@ -151,33 +180,36 @@ export default function ProductDetailPage() {
       </div>
     );
   }
+  const addToCart = (product: Product) => {
+    const key = getUserStorageKey("cart");
+    const cart: any[] = JSON.parse(localStorage.getItem(key) || "[]");
 
-  const relatedProducts: RelatedProduct[] = [
-    {
-      title: "SÁP ZONE CLAY",
-      category: "Sáp vuốt tóc",
-      price: "350K",
-      image: "/img/image%2077.png",
-    },
-    {
-      title: "SÁP ZONE CLAY",
-      category: "Sáp vuốt tóc",
-      price: "350K",
-      image: "/img/image%2077.png",
-    },
-    {
-      title: "SÁP ZONE CLAY",
-      category: "Sáp vuốt tóc",
-      price: "350K",
-      image: "/img/image%2077.png",
-    },
-    {
-      title: "SÁP ZONE CLAY",
-      category: "Sáp vuốt tóc",
-      price: "350K",
-      image: "/img/image%2077.png",
-    },
-  ];
+    const index = cart.findIndex(
+      (item) => item.Id_product === product.Id_product,
+    );
+
+    if (index !== -1) {
+      cart[index].quantity += quantity;
+    } else {
+      cart.push({ ...product, quantity });
+    }
+
+    localStorage.setItem(key, JSON.stringify(cart));
+  };
+
+  const handleAddToCart = () => {
+    if (!product) return;
+
+    addToCart(product);
+
+    setPopupProduct(product);
+    setShowPopup(true);
+
+    setTimeout(() => {
+      setShowPopup(false);
+    }, 2500);
+  };
+
 
   const tabBtnClass = (key: TabKey, isLast = false) =>
     "px-6 py-4 font-semibold " +
@@ -188,18 +220,24 @@ export default function ProductDetailPage() {
     <main className="font-spline">
       <section className="max-w-[1604px] mx-auto px-4 lg:px-10 py-10">
         <div className="flex flex-wrap items-center gap-2 mb-4">
-          <a className="hover:text-[#003366] font-semibold transition" href="/">Trang chủ</a>
+          <a className="hover:text-[#003366] font-semibold transition" href="/">
+            Trang chủ
+          </a>
           <i className="fa-solid fa-chevron-right text-[11px] text-gray-300"></i>
-          <span className="text-gray-700 font-semibold">{product.Category_Name}</span>
+          <span className="text-gray-700 font-semibold">
+            {product.Category_Name}
+          </span>
           <i className="fa-solid fa-chevron-right text-[11px] text-gray-300"></i>
-          <span className="text-gray-700 font-extrabold">{product.Name_product}</span>
+          <span className="text-gray-700 font-extrabold">
+            {product.Name_product}
+          </span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="lg:col-span-5">
             <div className="border border-gray-200 rounded-2xl p-6 bg-white shadow-sm flex justify-center">
               <img
-                src={`http://localhost:5000${product.Thumbnail}`}
+                src={`http://localhost:5001${product.Thumbnail}`}
                 alt={product.Name_product}
                 className="w-full max-w-[420px] max-h-[420px] object-contain"
               />
@@ -247,12 +285,18 @@ export default function ProductDetailPage() {
             <div className="mt-6 grid grid-cols-2 gap-4">
               <div className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
                 <p className="text-xs text-gray-500 font-semibold">Danh mục</p>
-                <p className="mt-1 font-semibold text-gray-900">{product.Category_Name}</p>
+                <p className="mt-1 font-semibold text-gray-900">
+                  {product.Category_Name}
+                </p>
               </div>
               <div className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
-                <p className="text-xs text-gray-500 font-semibold">Tình trạng</p>
+                <p className="text-xs text-gray-500 font-semibold">
+                  Tình trạng
+                </p>
                 <p className="mt-1 font-semibold text-green-600">
-                  {product.Quantity && product.Quantity > 0 ? "Còn hàng" : "Hết hàng"}
+                  {product.Quantity && product.Quantity > 0
+                    ? "Còn hàng"
+                    : "Hết hàng"}
                 </p>
               </div>
             </div>
@@ -266,9 +310,25 @@ export default function ProductDetailPage() {
                 >
                   -
                 </button>
+                <button
+                  type="button"
+                  className="w-11 h-11 flex items-center justify-center text-xl hover:bg-gray-50 transition"
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                >
+                  -
+                </button>
+
                 <span className="w-12 text-center font-semibold tabular-nums">
-                  1
+                  {quantity}
                 </span>
+
+                <button
+                  type="button"
+                  className="w-11 h-11 flex items-center justify-center text-xl hover:bg-gray-50 transition"
+                  onClick={() => setQuantity(quantity + 1)}
+                >
+                  +
+                </button>
                 <button
                   type="button"
                   className="w-11 h-11 flex items-center justify-center text-xl hover:bg-gray-50 transition"
@@ -281,15 +341,24 @@ export default function ProductDetailPage() {
             <div className="flex flex-col sm:flex-row gap-4 mt-7">
               <button
                 type="button"
-                className="flex items-center justify-center gap-2 px-6 py-3 bg-[#003366] text-white font-extrabold rounded-xl hover:bg-[#002244] transition"
+                onClick={handleAddToCart}
+                disabled={!product.Quantity || product.Quantity === 0}
+                className={`flex items-center justify-center gap-2 px-6 py-3 font-extrabold rounded-xl transition
+  ${
+    !product.Quantity || product.Quantity === 0
+      ? "bg-gray-400 text-white cursor-not-allowed"
+      : "bg-[#003366] text-white hover:bg-[#002244]"
+  }
+  `}
               >
                 <i className="fa-solid fa-cart-shopping" />
-                THÊM GIỎ HÀNG
+                {product.Quantity === 0 ? "HẾT HÀNG" : "THÊM GIỎ HÀNG"}
               </button>
 
               <button
                 type="button"
-                className="px-6 py-3 bg-[#33B1FA] text-white font-extrabold rounded-xl hover:opacity-90 transition"
+                onClick={handleAddToCart}
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-[#003366] text-white font-extrabold rounded-xl hover:bg-[#002244] transition"
               >
                 MUA NGAY
               </button>
@@ -373,7 +442,8 @@ export default function ProductDetailPage() {
                 }
               >
                 <p className="text-gray-700 whitespace-pre-wrap">
-                  {product.Description || "Chưa có mô tả chi tiết cho sản phẩm này."}
+                  {product.Description ||
+                    "Chưa có mô tả chi tiết cho sản phẩm này."}
                 </p>
               </div>
 
@@ -424,12 +494,15 @@ export default function ProductDetailPage() {
                 {Array.from({ length: 5 }).map((_, i) => (
                   <i
                     key={i}
-                    className={`fa-${i < Math.round(
-                      (comments.reduce((sum, c) => sum + c.rating, 0) /
-                        comments.length) || 0
-                    )
-                      ? "solid"
-                      : "regular"} fa-star text-yellow-400 text-2xl`}
+                    className={`fa-${
+                      i <
+                      Math.round(
+                        comments.reduce((sum, c) => sum + c.rating, 0) /
+                          comments.length || 0,
+                      )
+                        ? "solid"
+                        : "regular"
+                    } fa-star text-yellow-400 text-2xl`}
                   />
                 ))}
               </div>
@@ -442,7 +515,9 @@ export default function ProductDetailPage() {
             <div className="lg:col-span-3">
               <div className="space-y-2">
                 {[5, 4, 3, 2, 1].map((stars) => {
-                  const count = comments.filter((c) => c.rating === stars).length;
+                  const count = comments.filter(
+                    (c) => c.rating === stars,
+                  ).length;
                   const percentage =
                     comments.length > 0 ? (count / comments.length) * 100 : 0;
                   return (
@@ -471,7 +546,9 @@ export default function ProductDetailPage() {
               <button
                 onClick={() => {
                   if (!user) {
-                    router.push(`/login?returnTo=${encodeURIComponent(`/products/${id}`)}`);
+                    router.push(
+                      `/login?returnTo=${encodeURIComponent(`/products/${id}`)}`,
+                    );
                     return;
                   }
                   setShowReview(true);
@@ -513,7 +590,7 @@ export default function ProductDetailPage() {
                       </div>
                       <p className="text-xs text-gray-600">
                         {new Date(comment.Created_at).toLocaleDateString(
-                          "vi-VN"
+                          "vi-VN",
                         )}
                       </p>
                     </div>
@@ -562,7 +639,9 @@ export default function ProductDetailPage() {
                     key={i}
                     onClick={() => setNewRating(i + 1)}
                     className={`cursor-pointer fa-star text-2xl ${
-                      i < newRating ? "fa-solid text-yellow-400" : "fa-regular text-gray-300"
+                      i < newRating
+                        ? "fa-solid text-yellow-400"
+                        : "fa-regular text-gray-300"
                     }`}
                   />
                 ))}
@@ -578,13 +657,15 @@ export default function ProductDetailPage() {
               onClick={async () => {
                 if (!newContent) return;
                 if (!user) {
-                  router.push(`/login?returnTo=${encodeURIComponent(`/products/${id}`)}`);
+                  router.push(
+                    `/login?returnTo=${encodeURIComponent(`/products/${id}`)}`,
+                  );
                   return;
                 }
 
                 try {
                   const token = loadToken();
-                  await fetch("http://localhost:5000/api/product-comments", {
+                  await fetch("http://localhost:5001/api/product-comments", {
                     method: "POST",
                     headers: {
                       "Content-Type": "application/json",
@@ -598,7 +679,9 @@ export default function ProductDetailPage() {
                     }),
                   });
 
-                  const res = await fetch(`http://localhost:5000/api/product-comments/${id}`);
+                  const res = await fetch(
+                    `http://localhost:5001/api/product-comments/${id}`,
+                  );
                   const data = await res.json();
                   setComments(data);
                   setShowReview(false);
@@ -624,11 +707,30 @@ export default function ProductDetailPage() {
 
         {/* Mobile: 2 cột cho đẹp / Desktop: 4 cột đúng layout gốc */}
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-10">
-          {relatedProducts.map((p, idx) => (
-            <RelatedProductCard key={idx} p={p} />
+          {relatedProducts.map((p) => (
+            <RelatedProductCard key={p.Id_product} p={p} />
           ))}
         </div>
       </section>
+      {showPopup && popupProduct && (
+        <div className="fixed top-20 right-6 bg-white shadow-xl rounded-xl p-4 w-[320px] flex gap-3 items-center z-50">
+          <img
+            src={`http://localhost:5001${popupProduct.Thumbnail}`}
+            alt={popupProduct.Name_product}
+            className="w-16 h-16 object-cover rounded-lg"
+          />
+
+          <div className="flex flex-col">
+            <p className="font-semibold text-sm">{popupProduct.Name_product}</p>
+
+            <p className="text-[#003366] font-bold">
+              {Number(popupProduct.Price).toLocaleString()}đ
+            </p>
+
+            <p className="text-green-600 text-sm">Đã thêm vào giỏ hàng</p>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

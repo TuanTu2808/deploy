@@ -1,6 +1,13 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { apiRequest } from "@/lib/api";
 import {
   clearAuth,
@@ -37,19 +44,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const currentRefreshToken = loadRefreshToken();
 
     if (currentRefreshToken || currentAccessToken) {
-      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5001"}/api/auth/logout`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(currentAccessToken
-            ? { Authorization: `Bearer ${currentAccessToken}` }
-            : {}),
+      fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5001"}/api/auth/logout`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(currentAccessToken
+              ? { Authorization: `Bearer ${currentAccessToken}` }
+              : {}),
+          },
+          body: JSON.stringify({
+            refreshToken: currentRefreshToken,
+          }),
+          cache: "no-store",
         },
-        body: JSON.stringify({
-          refreshToken: currentRefreshToken,
-        }),
-        cache: "no-store",
-      }).catch(() => {
+      ).catch(() => {
         // ignore network errors on sign out
       });
     }
@@ -67,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserState(nextUser);
       saveAuth(nextTokens, nextUser, remember);
     },
-    []
+    [],
   );
 
   const refreshProfile = useCallback(async () => {
@@ -115,7 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserState(nextUser);
       saveAuthUsingCurrentStorage(nextTokens, nextUser);
     },
-    [token, refreshToken]
+    [token, refreshToken],
   );
 
   useEffect(() => {
@@ -145,6 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut,
       refreshProfile,
       setUser,
+      
     }),
     [
       token,
@@ -155,7 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut,
       refreshProfile,
       setUser,
-    ]
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

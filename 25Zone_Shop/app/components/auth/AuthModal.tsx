@@ -1,9 +1,9 @@
-"use client";
+﻿﻿﻿"use client";
 
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { usePresence } from "./usePresence";
 import { apiRequest, errorMessage } from "@/lib/api";
-import { useAuth } from "@/app/components/auth/AuthProvider";
+import { useAuth } from "./AuthProvider";
 import type { AuthResponse } from "@/lib/auth-types";
 import type { AuthTokens } from "@/lib/auth-storage";
 
@@ -14,6 +14,7 @@ type AuthModalProps = {
   mode: AuthMode;
   onClose: () => void;
   onModeChange: (next: AuthMode) => void;
+  onLoginSuccess?: () => void;
   logoSrc?: string;
 };
 
@@ -87,7 +88,9 @@ function TextInput({
           </span>
         )}
       </div>
-      {hasError && <p className="mt-1 text-left text-xs text-red-600">{error}</p>}
+      {hasError && (
+        <p className="mt-1 text-left text-xs text-red-600">{error}</p>
+      )}
     </div>
   );
 }
@@ -97,6 +100,7 @@ export default function AuthModal({
   mode,
   onClose,
   onModeChange,
+  onLoginSuccess,
   logoSrc = "/image 2.png",
 }: AuthModalProps) {
   const { mounted, visible } = usePresence(open, 220);
@@ -124,7 +128,8 @@ export default function AuthModal({
   const [forgotNewPassword, setForgotNewPassword] = useState("");
   const [forgotConfirmPassword, setForgotConfirmPassword] = useState("");
   const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
-  const [showForgotConfirmPassword, setShowForgotConfirmPassword] = useState(false);
+  const [showForgotConfirmPassword, setShowForgotConfirmPassword] =
+    useState(false);
   const [debugOtp, setDebugOtp] = useState("");
 
   const [loading, setLoading] = useState(false);
@@ -197,7 +202,9 @@ export default function AuthModal({
   };
 
   const resolveTokens = (response: Partial<AuthResponse>): AuthTokens => {
-    const accessToken = String(response.accessToken || response.token || "").trim();
+    const accessToken = String(
+      response.accessToken || response.token || "",
+    ).trim();
     const refreshToken = String(response.refreshToken || "").trim();
     if (!accessToken || !refreshToken) {
       throw new Error("Không nhận được đủ access token và refresh token.");
@@ -208,6 +215,7 @@ export default function AuthModal({
   const afterAuthSuccess = (response: AuthResponse, remember = true) => {
     signIn(resolveTokens(response), response.user, remember);
     setSuccess(response.message || "Thành công.");
+    afterAuthSuccess;
     onClose();
   };
 
@@ -374,14 +382,17 @@ export default function AuthModal({
 
     try {
       setLoading(true);
-      const response = await apiRequest<{ message: string }>("/api/auth/reset-password", {
-        method: "POST",
-        body: {
-          identifier: forgotIdentifier.trim(),
-          otp: forgotOtp.trim(),
-          newPassword: forgotNewPassword,
+      const response = await apiRequest<{ message: string }>(
+        "/api/auth/reset-password",
+        {
+          method: "POST",
+          body: {
+            identifier: forgotIdentifier.trim(),
+            otp: forgotOtp.trim(),
+            newPassword: forgotNewPassword,
+          },
         },
-      });
+      );
       setSuccess(response.message || "Đặt lại mật khẩu thành công.");
       setForgotOpen(false);
       setForgotStep("request");
@@ -460,7 +471,9 @@ export default function AuthModal({
             "relative w-full max-w-[900px] bg-white rounded-none md:rounded-3xl shadow-2xl " +
             "overflow-y-auto md:overflow-hidden h-[100dvh] md:h-auto md:max-h-[92vh] " +
             "grid grid-cols-1 md:grid-cols-2 transition-all duration-200 " +
-            (visible ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-[.98] translate-y-2")
+            (visible
+              ? "opacity-100 scale-100 translate-y-0"
+              : "opacity-0 scale-[.98] translate-y-2")
           }
           onClick={(event) => event.stopPropagation()}
         >
@@ -518,7 +531,9 @@ export default function AuthModal({
                         <button
                           type="button"
                           onClick={() => setShowLoginPassword((prev) => !prev)}
-                          aria-label={showLoginPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                          aria-label={
+                            showLoginPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"
+                          }
                           className="hover:text-accent-blue transition"
                         >
                           <i
@@ -536,7 +551,9 @@ export default function AuthModal({
                         <input
                           type="checkbox"
                           checked={rememberLogin}
-                          onChange={(event) => setRememberLogin(event.target.checked)}
+                          onChange={(event) =>
+                            setRememberLogin(event.target.checked)
+                          }
                           className="h-4 w-4 rounded border-gray-300 text-accent-blue focus:ring-accent-blue/40"
                         />
                         <span>Ghi nhớ đăng nhập</span>
@@ -566,7 +583,9 @@ export default function AuthModal({
                     </button>
 
                     <div className="pt-2">
-                      <p className="text-sm text-gray-500">Hoặc đăng nhập bằng nền tảng</p>
+                      <p className="text-sm text-gray-500">
+                        Hoặc đăng nhập bằng nền tảng
+                      </p>
                       <div className="mt-4 flex items-center justify-center gap-3">
                         <button
                           type="button"
@@ -639,14 +658,22 @@ export default function AuthModal({
                       right={
                         <button
                           type="button"
-                          onClick={() => setShowForgotNewPassword((prev) => !prev)}
-                          aria-label={showForgotNewPassword ? "Ẩn mật khẩu mới" : "Hiện mật khẩu mới"}
+                          onClick={() =>
+                            setShowForgotNewPassword((prev) => !prev)
+                          }
+                          aria-label={
+                            showForgotNewPassword
+                              ? "Ẩn mật khẩu mới"
+                              : "Hiện mật khẩu mới"
+                          }
                           className="hover:text-accent-blue transition"
                         >
                           <i
                             className={
                               "fa-regular text-[16px] " +
-                              (showForgotNewPassword ? "fa-eye-slash" : "fa-eye")
+                              (showForgotNewPassword
+                                ? "fa-eye-slash"
+                                : "fa-eye")
                             }
                           />
                         </button>
@@ -661,7 +688,9 @@ export default function AuthModal({
                       right={
                         <button
                           type="button"
-                          onClick={() => setShowForgotConfirmPassword((prev) => !prev)}
+                          onClick={() =>
+                            setShowForgotConfirmPassword((prev) => !prev)
+                          }
                           aria-label={
                             showForgotConfirmPassword
                               ? "Ẩn mật khẩu xác nhận"
@@ -672,7 +701,9 @@ export default function AuthModal({
                           <i
                             className={
                               "fa-regular text-[16px] " +
-                              (showForgotConfirmPassword ? "fa-eye-slash" : "fa-eye")
+                              (showForgotConfirmPassword
+                                ? "fa-eye-slash"
+                                : "fa-eye")
                             }
                           />
                         </button>
@@ -719,7 +750,9 @@ export default function AuthModal({
                     </button>
                   ) : (
                     <>
-                      <p className="text-sm text-gray-500">Chưa có tài khoản?</p>
+                      <p className="text-sm text-gray-500">
+                        Chưa có tài khoản?
+                      </p>
                       <button
                         type="button"
                         onClick={() => onModeChange("register")}
@@ -740,7 +773,9 @@ export default function AuthModal({
             <>
               <div className="px-6 sm:px-10 py-7 sm:py-10 flex flex-col justify-center text-center">
                 <Logo />
-                <p className="text-xl font-semibold mt-2 mb-6 text-[#003366]">Đăng ký</p>
+                <p className="text-xl font-semibold mt-2 mb-6 text-[#003366]">
+                  Đăng ký
+                </p>
 
                 <form className="space-y-4" onSubmit={onSubmitRegister}>
                   <TextInput
@@ -791,7 +826,9 @@ export default function AuthModal({
                       <button
                         type="button"
                         onClick={() => setShowRegisterPassword((prev) => !prev)}
-                        aria-label={showRegisterPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                        aria-label={
+                          showRegisterPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"
+                        }
                         className="hover:text-accent-blue transition"
                       >
                         <i
@@ -815,7 +852,9 @@ export default function AuthModal({
                   </button>
 
                   <div className="pt-2">
-                    <p className="text-sm text-gray-500">Hoặc đăng nhập bằng nền tảng</p>
+                    <p className="text-sm text-gray-500">
+                      Hoặc đăng nhập bằng nền tảng
+                    </p>
                     <div className="mt-4 flex items-center justify-center gap-3">
                       <button
                         type="button"

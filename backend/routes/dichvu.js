@@ -5,26 +5,14 @@ import { publishBookingContentChanged } from "../utils/realtime.js";
 
 const router = express.Router();
 
-const parsePositiveInt = (value, fallback) => {
-  const parsed = Number.parseInt(String(value ?? ""), 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
-  return parsed;
-};
-
 /**
+ * =========================
  * GET: Lấy danh sách dịch vụ
+ * =========================
  */
 router.get("/", async (req, res) => {
   try {
-    const { status, page, limit, search, paginate } = req.query;
-    const usePagination =
-      paginate === "1" ||
-      page !== undefined ||
-      limit !== undefined;
-    const currentPage = parsePositiveInt(page, 1);
-    const perPage = Math.min(parsePositiveInt(limit, 10), 100);
-    const offset = (currentPage - 1) * perPage;
-    const searchKeyword = String(search || "").trim();
+    const { status } = req.query;
 
     let query = `
       SELECT 
@@ -50,63 +38,15 @@ router.get("/", async (req, res) => {
     `;
 
     const params = [];
-    const whereClauses = [];
-
     if (status !== undefined) {
-      whereClauses.push("s.Status = ?");
+      query += " WHERE s.Status = ?";
       params.push(Number(status));
-    }
-
-    if (searchKeyword) {
-      whereClauses.push("s.Name LIKE ?");
-      params.push(`%${searchKeyword}%`);
-    }
-
-    if (whereClauses.length > 0) {
-      query += ` WHERE ${whereClauses.join(" AND ")}`;
     }
 
     query += " ORDER BY s.Id_services DESC";
 
-    if (!usePagination || paginate === "0") {
-      const [rows] = await database.query(query, params);
-      return res.json(rows);
-    }
-
-    let countQuery = "SELECT COUNT(*) AS totalItems FROM Services";
-    const countParams = [];
-    const countClauses = [];
-
-    if (status !== undefined) {
-      countClauses.push("Status = ?");
-      countParams.push(Number(status));
-    }
-
-    if (searchKeyword) {
-      countClauses.push("Name LIKE ?");
-      countParams.push(`%${searchKeyword}%`);
-    }
-
-    if (countClauses.length > 0) {
-      countQuery += ` WHERE ${countClauses.join(" AND ")}`;
-    }
-
-    const [countRows] = await database.query(countQuery, countParams);
-    const totalItems = Number(countRows?.[0]?.totalItems || 0);
-    const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / perPage);
-
-    const paginatedQuery = `${query} LIMIT ? OFFSET ?`;
-    const [rows] = await database.query(paginatedQuery, [...params, perPage, offset]);
-
-    return res.json({
-      data: rows,
-      pagination: {
-        page: currentPage,
-        limit: perPage,
-        totalItems,
-        totalPages,
-      },
-    });
+    const [rows] = await database.query(query, params);
+    return res.json(rows);
   } catch (error) {
     console.error("Lỗi lấy danh sách services:", error);
     return res.status(500).json({ message: "Lỗi server" });
@@ -125,7 +65,7 @@ router.get("/:id", async (req, res) => {
 
     const [rows] = await database.query(
       `
-      SELECT
+      SELECT 
         s.Id_services,
         s.Name,
         s.Price,
@@ -134,14 +74,7 @@ router.get("/:id", async (req, res) => {
         s.Sale_Price,
         s.Status,
         s.Id_category_service AS Id_category,
-        c.Name AS category_name,
-        (
-          SELECT i.Image_URL
-          FROM Image_Services i
-          WHERE i.Id_services = s.Id_services
-          ORDER BY i.Id_image_service ASC
-          LIMIT 1
-        ) AS Image_URL
+        c.Name AS category_name
       FROM Services s
       LEFT JOIN Categories_service c
         ON s.Id_category_service = c.Id_category_service
@@ -163,7 +96,10 @@ router.get("/:id", async (req, res) => {
 });
 
 /**
+ * =========================
  * POST: Tạo dịch vụ mới
+ * =========================
+ * POST /api/dichvu
  */
 router.post("/", requireAdminAuth, async (req, res) => {
   try {
@@ -377,3 +313,4 @@ router.patch("/:id/status", requireAdminAuth, async (req, res) => {
 });
 
 export default router;
+

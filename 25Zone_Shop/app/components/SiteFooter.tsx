@@ -1,4 +1,4 @@
-export default function SiteFooter() {
+﻿export default function SiteFooter() {
   return (
     <footer className="bg-[#002d58] pt-12 md:pt-16 pb-8 text-white text-[13px] border-t border-white/10">
       <div className="mx-auto max-w-[1920px] px-4 sm:px-6 lg:px-6">

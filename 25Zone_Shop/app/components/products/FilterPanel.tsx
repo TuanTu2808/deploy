@@ -56,7 +56,7 @@ export function FilterPanel({
         const fetchCategories = async () => {
             try {
                 setLoadingCategories(true);
-                const response = await fetch("http://localhost:5000/api/sanpham/categories/list");
+                const response = await fetch("http://localhost:5001/api/sanpham/categories/list");
                 const data = await response.json();
                 setCategories(data);
             } catch (error) {
@@ -74,7 +74,7 @@ export function FilterPanel({
         const fetchBrands = async () => {
             try {
                 setLoadingBrands(true);
-                const response = await fetch("http://localhost:5000/api/sanpham/brands/list");
+                const response = await fetch("http://localhost:5001/api/sanpham/brands/list");
                 const data = await response.json();
                 setBrands(data);
             } catch (error) {
