@@ -1,80 +1,251 @@
 "use client";
-
+import CartPopup from "@/app/components/CartPopup";
+import { useCart } from "@/app/hooks/useCart";
+import { useFavorites } from "@/app/hooks/useFavorites";
+import Link from "next/link";
 import { useEffect, useState } from "react";
+import {
+  fetchNewsList,
+  getNewsExcerpt,
+  normalizeNewsImage,
+  type ShopNewsItem,
+} from "@/lib/news";
 
-function FlashSaleCard() {
+const getImageUrl = (thumbnail: any) => {
+  if (!thumbnail) return "/img/placeholder.png";
+  if (typeof thumbnail === "string") {
+    if (thumbnail.startsWith("http")) return thumbnail;
+    try {
+      const parsed = JSON.parse(thumbnail);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed[0].startsWith("http")
+          ? parsed[0]
+          : `http://localhost:5001${parsed[0]}`;
+      }
+    } catch (e) {
+      // not a json array
+    }
+    return thumbnail.startsWith("/")
+      ? `http://localhost:5001${thumbnail}`
+      : `http://localhost:5001/${thumbnail}`;
+  }
+  return `http://localhost:5001${thumbnail}`;
+};
+
+function FlashSaleCard({ product }: { product: any }) {
+  const discount = Math.round(
+    ((product.Price - product.Sale_Price) / product.Price) * 100,
+  );
+
   return (
-    <div className="bg-white rounded-3xl p-4 shadow-lg text-center relative">
-      <span className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
-        -20%
+    <div className="bg-white rounded-3xl p-4 shadow-lg text-center flex flex-col relative h-full w-full">
+      <span className="absolute top-3 right-3 z-10 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+        -{discount}%
       </span>
 
-      <div className="rounded-2xl overflow-hidden border-4 border-gray-100 mb-4">
-        <img className="w-full h-auto object-cover" src="/img/image%2077.png" alt="" />
+      <div className="rounded-2xl overflow-hidden border-4 border-gray-100 mb-4 aspect-square">
+        <img
+          className="w-full h-full object-cover"
+          src={getImageUrl(product.Thumbnail)}
+          alt={product.Name_product}
+        />
       </div>
 
-      <h3 className="text-sm font-semibold text-[#003366] leading-snug text-left">
-        Xịt tạo kiểu Glanzen <br />
-        X2 Booster
+      <h3 className="text-sm font-semibold text-[#003366] text-left line-clamp-2">
+        {product.Name_product}
       </h3>
 
-      <div className="text-left mt-2">
-        <p className="line-through text-gray-400 text-sm">345.000đ</p>
-        <p className="text-red-600 font-extrabold text-lg">276.000đ</p>
+      <div className="text-left mt-auto pt-2">
+        <p className="line-through text-gray-400 text-sm">
+          {product.Price?.toLocaleString()}đ
+        </p>
+        <p className="text-red-600 font-extrabold text-lg">
+          {product.Sale_Price?.toLocaleString()}đ
+        </p>
       </div>
-
-      <button className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-[#003366] text-white flex items-center justify-center">
-        <i className="fa-solid fa-cart-shopping text-sm"></i>
-      </button>
     </div>
   );
 }
 
-function ProductCard() {
+function ProductCard({
+  product,
+  onAddToCart,
+}: {
+  product: any;
+  onAddToCart: (product: any) => void;
+}) {
+  const { toggleFavorite, isFavorite } = useFavorites();
+  const [liked, setLiked] = useState(false);
+
+  useEffect(() => {
+    setLiked(isFavorite(product.Id_product));
+    const handleUpdate = () => setLiked(isFavorite(product.Id_product));
+    window.addEventListener("favorites-updated", handleUpdate);
+    return () => window.removeEventListener("favorites-updated", handleUpdate);
+  }, [product.Id_product]);
+
   return (
-    <div className="bg-white rounded-[32px] overflow-hidden shadow-2xl max-w-[320px] w-full">
-      <div className="relative flex items-center justify-center overflow-hidden">
-        <img
-          alt="Sáp Zone Clay"
-          className="w-full mx-auto mb-4 object-contain scale-91 -translate-y-2 transition-transform duration-300"
-          src="/img/image%2077.png"
-        />
-      </div>
-
-      {/* mobile đẹp hơn: -mt nhẹ + p nhỏ hơn */}
-      <div className="bg-white rounded-t-[32px] -mt-8 sm:-mt-10 p-4 sm:p-6 relative z-10">
-        <h3 className="text-[18px] sm:text-[22px] font-extrabold text-[#003366] uppercase">
-          SÁP ZONE CLAY
-        </h3>
-        <p className="text-sm text-[#003366] mt-1">Sáp vuốt tóc</p>
-
-        <div className="h-[3px] w-12 bg-[#003366] mt-2 mb-4"></div>
-
-        <div className="h-px bg-gray-300 mb-3"></div>
-        <p className="text-xs text-gray-400 uppercase">Giá sản phẩm</p>
-
-        <div className="flex items-center mt-2">
-          <span className="text-[#8b1e1e] font-extrabold text-3xl sm:text-4xl">350K</span>
-
-          <button className="ml-auto w-9 h-9 rounded-full bg-[#003366] text-white flex items-center justify-center hover:bg-[#00264d] transition">
-            <i className="fa-solid fa-heart text-sm"></i>
-          </button>
+    <Link href={`/products/${product.Id_product}`} className="w-full h-full">
+      <div className="bg-white rounded-[32px] overflow-hidden shadow-2xl max-w-[320px] w-full h-full flex flex-col">
+        <div className="relative w-full overflow-hidden aspect-square">
+          <img
+            alt={product.Name_product}
+            className="w-full h-full object-cover"
+            src={getImageUrl(product.Thumbnail)}
+          />
         </div>
 
-        <button className="w-full mt-4 sm:mt-5 py-3 sm:py-4 rounded-2xl bg-[#003366] text-white font-bold tracking-wide hover:bg-[#00264d] transition">
-          MUA NGAY
-        </button>
+        <div className="bg-white flex-1 flex flex-col rounded-t-[32px] -mt-8 sm:-mt-10 p-4 sm:p-6 relative z-10">
+          <h3 className="text-[18px] sm:text-[22px] font-extrabold text-[#003366] uppercase line-clamp-2">
+            {product.Name_product}
+          </h3>
+
+          <p className="text-sm text-[#003366] mt-1">{product.Category_Name}</p>
+
+          <div className="h-[3px] w-12 bg-[#003366] mt-2 mb-4"></div>
+
+          <div className="mt-auto">
+            <p className="text-xs text-gray-400 uppercase">Giá sản phẩm</p>
+
+            <div className="flex items-center mt-2">
+              <span className="text-[#8b1e1e] font-extrabold text-3xl">
+                {product.Price?.toLocaleString()}đ
+              </span>
+
+              <button
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(product); }}
+                className="ml-auto w-10 h-10 flex-shrink-0 rounded-full bg-[#003366] text-white flex items-center justify-center hover:bg-[#002244] hover:scale-105 active:scale-95 transition-all shadow-md"
+              >
+                <i className={liked ? "fa-solid fa-heart" : "fa-regular fa-heart"}></i>
+              </button>
+            </div>
+
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                onAddToCart(product);
+              }}
+              className="w-full mt-4 py-3 rounded-2xl bg-[#003366] text-white font-bold"
+            >
+              MUA NGAY
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
+    </Link>
+  );
+}
+function HomeNewsCard({ item }: { item: ShopNewsItem }) {
+  return (
+    <article className="bg-white rounded-3xl overflow-hidden shadow-xl">
+      <img
+        alt={item.Title}
+        className="w-full h-[220px] object-cover"
+        src={normalizeNewsImage(item.Thumbnail)}
+      />
+      <div className="p-6">
+        <span className="inline-flex items-center rounded-full bg-[#E6F4FF] px-3 py-1 text-xs font-bold text-[#0B4C8C]">
+          {item.Name_category_news || "Tin t\u1ee9c"}
+        </span>
+        <h3 className="mt-3 text-lg font-extrabold text-[#003366] leading-snug line-clamp-2">
+          {item.Title}
+        </h3>
+        <p className="text-gray-600 text-sm mt-3 leading-relaxed line-clamp-3">
+          {getNewsExcerpt(item.Content, 130)}
+        </p>
+        <Link
+          className="inline-flex items-center gap-2 mt-5 font-bold text-[#003366] text-sm hover:text-[#00A2D9]"
+          href={`/news/${encodeURIComponent(item.Slug)}`}
+        >
+          {"\u0110\u1eccC CHI TI\u1ebeT"}
+          <i className="fa-solid fa-arrow-right text-xs"></i>
+        </Link>
+      </div>
+    </article>
   );
 }
 
 export default function HomePage() {
-  const slides = ["/img/banner1.jpg", "/img/banner%20shop.png", "/img/banner3.jpg"];
+  const slides = [
+    "/img/banner1.jpg",
+    "/img/banner%20shop.png",
+    "/img/banner3.jpg",
+  ];
   const [index, setIndex] = useState(0);
+  const [homeNews, setHomeNews] = useState<ShopNewsItem[]>([]);
+  const [homeNewsLoading, setHomeNewsLoading] = useState(true);
+  const [flashSale, setFlashSale] = useState<any[]>([]);
+  const [bestSeller, setBestSeller] = useState<any[]>([]);
+  const [sapVuotToc, setSapVuotToc] = useState<any[]>([]);
+  const { addToCart, showPopup, popupProduct } = useCart();
+  const [dauGoi, setDauGoi] = useState<any[]>([]);
+  const [timeLeft, setTimeLeft] = useState(7200);
 
-  // Countdown timer state
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return {
+      hours: h.toString().padStart(2, "0"),
+      minutes: m.toString().padStart(2, "0"),
+      seconds: s.toString().padStart(2, "0"),
+    };
+  };
+
+  const time = formatTime(timeLeft);
+
+  const scrollSlider = (direction: "left" | "right") => {
+    const slider = document.getElementById("flash-sale-slider");
+    if (slider) {
+      const scrollAmount = slider.clientWidth;
+      slider.scrollBy({
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const flash = await fetch(
+          "http://localhost:5001/api/sanpham/flash-sale?limit=12",
+        );
+
+        if (!flash.ok) {
+          console.error("API flash-sale lỗi");
+          return;
+        }
+
+        const flashData = await flash.json();
+
+        setFlashSale(Array.isArray(flashData) ? flashData : []);
+
+        const best = await fetch("http://localhost:5001/api/sanpham");
+        const bestData = await best.json();
+        setBestSeller(bestData.slice(0, 4));
+
+        const sap = await fetch("http://localhost:5001/api/sanpham/category/1");
+        const sapData = await sap.json();
+        setSapVuotToc(sapData);
+
+        const dau = await fetch("http://localhost:5001/api/sanpham/category/2");
+        const dauData = await dau.json();
+        setDauGoi(dauData);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -83,28 +254,27 @@ export default function HomePage() {
     return () => clearInterval(t);
   }, [slides.length]);
 
-  // Countdown timer effect
   useEffect(() => {
-    const targetDate = new Date();
-    targetDate.setDate(targetDate.getDate() + 2); // Set to 2 days from now
+    let active = true;
 
-    const interval = setInterval(() => {
-      const now = new Date();
-      const difference = targetDate.getTime() - now.getTime();
-
-      if (difference > 0) {
-        const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-        setTimeLeft({ days, hours, minutes, seconds });
-      } else {
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-        clearInterval(interval);
+    const loadHomeNews = async () => {
+      try {
+        setHomeNewsLoading(true);
+        const data = await fetchNewsList({ page: 1, limit: 3 });
+        if (!active) return;
+        setHomeNews(data.items);
+      } catch (error) {
+        if (!active) return;
+        console.error("Không thể tải tin tức trang chủ:", error);
+      } finally {
+        if (active) setHomeNewsLoading(false);
       }
-    }, 1000);
+    };
 
-    return () => clearInterval(interval);
+    loadHomeNews();
+    return () => {
+      active = false;
+    };
   }, []);
 
   return (
@@ -117,7 +287,12 @@ export default function HomePage() {
             style={{ transform: `translateX(-${index * 100}%)` }}
           >
             {slides.map((src) => (
-              <img key={src} src={src} className="w-full flex-shrink-0" alt="banner" />
+              <img
+                key={src}
+                src={src}
+                className="w-full flex-shrink-0"
+                alt="banner"
+              />
             ))}
           </div>
 
@@ -127,7 +302,10 @@ export default function HomePage() {
                 key={i}
                 type="button"
                 onClick={() => setIndex(i)}
-                className={"w-3 h-3 rounded-full transition " + (i === index ? "bg-[#868282]" : "bg-white/50")}
+                className={
+                  "w-3 h-3 rounded-full transition " +
+                  (i === index ? "bg-[#868282]" : "bg-white/50")
+                }
                 aria-label={`Go to slide ${i + 1}`}
               />
             ))}
@@ -140,7 +318,11 @@ export default function HomePage() {
         <div className="max-w-[1400px] mx-auto flex flex-col lg:flex-row items-center gap-6 lg:gap-8 px-4 sm:px-6 lg:px-10 relative">
           <div className="w-full lg:w-[40%] relative right-0 lg:right-20">
             <div className="rounded-3xl overflow-hidden relative">
-              <img className="w-90 w-full object-cover scale-105" src="/img/Rectangle%2024827.png" alt="" />
+              <img
+                className="w-90 w-full object-cover "
+                src="/img/Rectangle%2024827.png"
+                alt=""
+              />
 
               <div className="absolute bottom-4 left-4 bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-bold italic">
                 LIMITED TIME OFFER! <br />
@@ -153,37 +335,53 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
               <div className="flex items-center gap-4 bg-[#003366] text-white px-8 py-4 rounded-2xl skew-x-[-10deg] w-fit">
                 <i className="fa-solid fa-bolt text-yellow-400 text-6xl"></i>
-                <h1 className="text-4xl font-extrabold tracking-widest skew-x-[10deg] italic">FLASH SALE</h1>
+                <h1 className="text-4xl font-extrabold tracking-widest skew-x-[10deg] italic">
+                  FLASH SALE
+                </h1>
               </div>
 
               <div className="flex gap-3 text-[#003366] font-bold text-lg">
-                <span>{timeLeft.days.toString().padStart(2, '0')}</span> :
-                <span>{timeLeft.hours.toString().padStart(2, '0')}</span> :
-                <span>{timeLeft.minutes.toString().padStart(2, '0')}</span> :
-                <span>{timeLeft.seconds.toString().padStart(2, '0')}</span>
+                <span>00</span> : <span>{time.hours}</span> : <span>{time.minutes}</span> :{" "}
+                <span>{time.seconds}</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 pt-2 relative">
-              <FlashSaleCard />
-              <FlashSaleCard />
-              <FlashSaleCard />
-              <FlashSaleCard />
+            <div
+              id="flash-sale-slider"
+              className="flex gap-4 sm:gap-6 pt-2 overflow-x-auto snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            >
+              {flashSale.map((p) => (
+                <div
+                  key={p.Id_product}
+                  className="snap-start flex-shrink-0 w-[calc(50%-8px)] sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)]"
+                >
+                  <FlashSaleCard product={p} />
+                </div>
+              ))}
             </div>
 
             <div className="flex justify-center mt-8 sm:mt-10">
-              <button className="bg-white flex items-center gap-3 px-8 sm:px-10 py-4 border-2 border-[#003366] rounded-full font-bold text-[#003366] hover:bg-[#003366] hover:text-white transition">
+              <Link
+                href="/promotions"
+                className="bg-white flex items-center gap-3 px-8 sm:px-10 py-4 border-2 border-[#003366] rounded-full font-bold text-[#003366] hover:bg-[#003366] hover:text-white transition"
+              >
                 XEM THÊM SẢN PHẨM
                 <i className="fa-solid fa-arrow-right"></i>
-              </button>
+              </Link>
             </div>
           </div>
 
-          <button className="hidden lg:flex absolute left-[38%] top-1/2 -translate-y-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-white shadow items-center justify-center text-[#003366]">
+          <button
+            onClick={() => scrollSlider('left')}
+            className="hidden lg:flex absolute left-[38%] top-1/2 -translate-y-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-white shadow items-center justify-center text-[#003366] hover:bg-gray-100 z-10 transition-colors"
+          >
             <i className="fa-solid fa-chevron-left"></i>
           </button>
 
-          <button className="hidden lg:flex absolute -right-10 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow items-center justify-center text-[#003366]">
+          <button
+            onClick={() => scrollSlider('right')}
+            className="hidden lg:flex absolute -right-10 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow items-center justify-center text-[#003366] hover:bg-gray-100 z-10 transition-colors"
+          >
             <i className="fa-solid fa-chevron-right"></i>
           </button>
         </div>
@@ -198,17 +396,23 @@ export default function HomePage() {
 
           {/* ✅ mobile 2 box/row + gap nhỏ lại cho đẹp */}
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-8 justify-items-center">
-            <ProductCard />
-            <ProductCard />
-            <ProductCard />
-            <ProductCard />
+            {bestSeller.map((p) => (
+              <ProductCard
+                key={p.Id_product}
+                product={p}
+                onAddToCart={(p) => addToCart(p)}
+              />
+            ))}
           </div>
 
           <div className="flex justify-center mt-10 sm:mt-16">
-            <button className="flex items-center gap-3 px-10 sm:px-12 py-4 rounded-full bg-white text-[#003366] font-bold hover:bg-gray-100 transition">
+            <Link
+              href="/products"
+              className="bg-white flex items-center gap-3 px-8 sm:px-10 py-4 border-2 border-[#003366] rounded-full font-bold text-[#003366] hover:bg-[#003366] hover:text-white transition"
+            >
               XEM THÊM SẢN PHẨM
               <i className="fa-solid fa-arrow-right"></i>
-            </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -218,21 +422,30 @@ export default function HomePage() {
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10 sm:mb-12">
             <div>
-              <h2 className="text-4xl font-extrabold text-[#0b3a66] uppercase">SÁP VUỐT TÓC</h2>
+              <h2 className="text-4xl font-extrabold text-[#0b3a66] uppercase">
+                SÁP VUỐT TÓC
+              </h2>
               <div className="w-16 h-1 bg-[#1aa3a3] mt-3"></div>
             </div>
 
             {/* ✅ Desktop mới hiện nút ở header */}
-            <button className="hidden md:flex items-center gap-3 px-8 py-4 rounded-full bg-[#0b3a66] text-white font-bold hover:bg-[#092d50] transition w-fit">
-              XEM THÊM SẢN PHẨM <i className="fa-solid fa-arrow-right"></i>
-            </button>
+            <Link
+              href="/products"
+              className="bg-white flex items-center gap-3 px-8 sm:px-10 py-4 border-2 border-[#003366] rounded-full font-bold text-[#003366] hover:bg-[#003366] hover:text-white transition"
+            >
+              XEM THÊM SẢN PHẨM
+              <i className="fa-solid fa-arrow-right"></i>
+            </Link>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-8 justify-items-center">
-            <ProductCard />
-            <ProductCard />
-            <ProductCard />
-            <ProductCard />
+            {sapVuotToc.map((p) => (
+              <ProductCard
+                key={p.Id_product}
+                product={p}
+                onAddToCart={addToCart}
+              />
+            ))}
           </div>
 
           {/* ✅ Mobile: nút nằm dưới grid */}
@@ -249,21 +462,30 @@ export default function HomePage() {
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10 sm:mb-12">
             <div>
-              <h2 className="text-4xl font-extrabold text-[#0b3a66] uppercase">Dầu gội nam</h2>
+              <h2 className="text-4xl font-extrabold text-[#0b3a66] uppercase">
+                Dầu gội nam
+              </h2>
               <div className="w-16 h-1 bg-[#1aa3a3] mt-3"></div>
             </div>
 
             {/* ✅ Desktop mới hiện nút ở header */}
-            <button className="hidden md:flex items-center gap-3 px-8 py-4 rounded-full bg-[#0b3a66] text-white font-bold hover:bg-[#092d50] transition w-fit">
-              XEM THÊM SẢN PHẨM <i className="fa-solid fa-arrow-right"></i>
-            </button>
+            <Link
+              href="/products"
+              className="bg-white flex items-center gap-3 px-8 sm:px-10 py-4 border-2 border-[#003366] rounded-full font-bold text-[#003366] hover:bg-[#003366] hover:text-white transition"
+            >
+              XEM THÊM SẢN PHẨM
+              <i className="fa-solid fa-arrow-right"></i>
+            </Link>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-8 justify-items-center">
-            <ProductCard />
-            <ProductCard />
-            <ProductCard />
-            <ProductCard />
+            {dauGoi.map((p) => (
+              <ProductCard
+                key={p.Id_product}
+                product={p}
+                onAddToCart={addToCart}
+              />
+            ))}
           </div>
 
           {/* ✅ Mobile: nút nằm dưới grid */}
@@ -278,71 +500,55 @@ export default function HomePage() {
       {/* ===== Tin tức ===== */}
       <section className="mt-5 bg-[#eef7fb] py-12 sm:py-16 lg:py-20">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
-          <div className="mb-10 sm:mb-12">
-            <h2 className="text-4xl font-extrabold text-[#003366] uppercase">TIN TỨC 25ZONE</h2>
-            <div className="w-16 h-1 bg-teal-400 mt-3"></div>
+          <div className="mb-10 sm:mb-12 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <div>
+              <h2 className="text-4xl font-extrabold text-[#003366] uppercase">
+                {"TIN T\u1ee8C 25ZONE"}
+              </h2>
+              <div className="w-16 h-1 bg-teal-400 mt-3"></div>
+            </div>
+            <Link
+              href="/news"
+              className="inline-flex w-fit items-center gap-2 rounded-full border-2 border-[#003366] px-6 py-3 text-sm font-bold text-[#003366] hover:bg-[#003366] hover:text-white"
+            >
+              {"XEM T\u1ea4T C\u1ea2"}
+              <i className="fa-solid fa-arrow-right text-xs"></i>
+            </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-10">
-            <div className="col-span-1 bg-white rounded-3xl overflow-hidden shadow-2xl">
-              <div className="relative">
-                <span className="absolute top-4 left-4 bg-[#003366] text-white text-xs font-bold px-4 py-1 rounded-full">
-                  CÂU CHUYỆN 25ZONE
-                </span>
-                <img alt="" className="w-full h-[260px] object-cover" src="/img/news-1.jpg" />
-              </div>
-              <div className="p-6 sm:p-8">
-                <h3 className="text-2xl font-extrabold text-[#003366] leading-snug">
-                  "Hơn cả cắt tóc, đó là sự quan tâm tận tâm từ những người bạn."
-                </h3>
-                <p className="text-gray-600 mt-4 leading-relaxed">
-                  Mỗi nụ cười của khách hàng là động lực để đội ngũ stylist 25Zone
-                  không ngừng nỗ lực. Chúng tôi tin rằng, một kiểu tóc đẹp bắt đầu
-                  từ sự lắng nghe và thấu hiểu những mong muốn nhỏ nhất.
-                </p>
-                <a className="inline-flex items-center gap-2 mt-6 font-bold text-[#003366]" href="#">
-                  ĐỌC CHI TIẾT
-                  <i className="fa-solid fa-arrow-right text-sm"></i>
-                </a>
-              </div>
-            </div>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3 lg:gap-10">
+            {homeNewsLoading &&
+              Array.from({ length: 3 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="overflow-hidden rounded-3xl border border-[#DDE7EF] bg-white shadow-sm"
+                >
+                  <div className="h-[220px] animate-pulse bg-[#E5EEF5]"></div>
+                  <div className="space-y-3 p-6">
+                    <div className="h-4 w-24 animate-pulse rounded bg-[#E5EEF5]"></div>
+                    <div className="h-5 w-full animate-pulse rounded bg-[#E5EEF5]"></div>
+                    <div className="h-5 w-4/5 animate-pulse rounded bg-[#E5EEF5]"></div>
+                    <div className="h-4 w-full animate-pulse rounded bg-[#E5EEF5]"></div>
+                  </div>
+                </div>
+              ))}
 
-            <div className="bg-white rounded-3xl overflow-hidden shadow-xl">
-              <img alt="" className="w-full h-[200px] object-cover" src="/img/news-2.jpg" />
-              <div className="p-6">
-                <h3 className="text-lg font-extrabold text-[#003366] leading-snug">
-                  Niềm vui của bé khi lần đầu đến Salon
-                </h3>
-                <p className="text-gray-600 text-sm mt-3 leading-relaxed">
-                  Các stylist kiên nhẫn và uy tín đã biến buổi cắt tóc thành trò
-                  chơi đầy thú vị.
-                </p>
-                <a className="inline-flex items-center gap-2 mt-5 font-bold text-[#003366] text-sm" href="#">
-                  XEM THÊM
-                  <i className="fa-solid fa-arrow-right text-xs"></i>
-                </a>
+            {!homeNewsLoading && homeNews.length === 0 && (
+              <div className="rounded-3xl border border-dashed border-[#BCD0E0] bg-white p-6 text-center text-[#4B5D70] md:col-span-3">
+                {
+                  "Ch\u01b0a c\u00f3 b\u00e0i vi\u1ebft n\u00e0o \u0111\u1ec3 hi\u1ec3n th\u1ecb."
+                }
               </div>
-            </div>
+            )}
 
-            <div className="bg-white rounded-3xl overflow-hidden shadow-xl">
-              <img alt="" className="w-full h-[200px] object-cover" src="/img/news-3.jpg" />
-              <div className="p-6">
-                <h3 className="text-lg font-extrabold text-[#003366] leading-snug">
-                  Stylist Tuấn Anh: "Khách hàng như người thân"
-                </h3>
-                <p className="text-gray-600 text-sm mt-3 leading-relaxed">
-                  Chia sẻ về hành trình 5 năm gắn bó và những kỷ niệm khó quên với
-                  khách hàng.
-                </p>
-                <a className="inline-flex items-center gap-2 mt-5 font-bold text-[#003366] text-sm" href="#">
-                  XEM THÊM
-                  <i className="fa-solid fa-arrow-right text-xs"></i>
-                </a>
-              </div>
-            </div>
+            {!homeNewsLoading &&
+              homeNews.map((item) => (
+                <HomeNewsCard key={item.Id_news} item={item} />
+              ))}
           </div>
         </div>
       </section>
+      {showPopup && <CartPopup product={popupProduct} />}
     </main>
   );
 }

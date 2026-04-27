@@ -7,6 +7,8 @@ export type AuthUser = {
   Image: string | null;
   role: "user" | "stylist" | "admin" | "staff";
   Id_store: number;
+  Province?: string;
+  Ward?: string;
 };
 
 export type AuthResponse = {

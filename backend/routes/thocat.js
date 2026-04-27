@@ -5,7 +5,7 @@ const router = express.Router();
 
 router.get("/", async (req, res) => {
   try {
-const { store, role, date } = req.query;
+    const { store, role, date } = req.query;
 
     let query = `
       SELECT DISTINCT

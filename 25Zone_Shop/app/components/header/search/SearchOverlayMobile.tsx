@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { usePresence } from "../usePresence";
@@ -60,7 +60,7 @@ export function SearchOverlayMobile({
         debounceTimer.current = setTimeout(async () => {
             try {
                 const response = await fetch(
-                    `http://localhost:5000/api/sanpham/search?q=${encodeURIComponent(searchTerm)}`
+                    `http://localhost:5001/api/sanpham/search?q=${encodeURIComponent(searchTerm)}`
                 );
                 const data = await response.json();
                 setSearchResults(data.slice(0, 6)); // Limit to 6 results
@@ -211,7 +211,7 @@ export function SearchOverlayMobile({
                                                 {/* Product Image */}
                                                 <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
                                                     <img
-                                                        src={`http://localhost:5000${product.Thumbnail}`}
+                                                        src={`http://localhost:5001${product.Thumbnail}`}
                                                         alt={product.Name_product}
                                                         className="w-full h-full object-cover"
                                                     />

@@ -192,7 +192,7 @@ function generateTimeSlots(startTime, endTime) {
     }
 
     const slotDurationMillis = 30 * 60000;
-    
+
     let current = start;
     while (current < end) {
       const hh = String(current.getHours()).padStart(2, "0");
@@ -226,8 +226,8 @@ router.post("/", async (req, res) => {
     );
 
     if (existing.length > 0) {
-       await connection.rollback();
-       return res.status(400).json({ message: "Lịch làm việc cho ngày này đã tồn tại" });
+      await connection.rollback();
+      return res.status(400).json({ message: "Lịch làm việc cho ngày này đã tồn tại" });
     }
 
     // Thêm vào Work_shifts
@@ -289,15 +289,15 @@ router.post("/batch", async (req, res) => {
         insertId = existing[0].Id_work_shifts;
         // Update Shift
         await connection.query("UPDATE Work_shifts SET Start_time = ?, End_time = ? WHERE Id_work_shifts = ?", [Start_time, End_time, insertId]);
-        
+
         // Dọn dẹp: Xóa TẤT CẢ các slot KHÔNG PHẢI là ĐÃ ĐẶT (Status != 0)
         await connection.query("DELETE FROM Work_shifts_hours WHERE Id_work_shifts = ? AND Status != 0", [insertId]);
-        
+
         // Lấy danh sách giờ đã được giữ lại (đã đặt)
         const [bookedSlots] = await connection.query("SELECT Hours FROM Work_shifts_hours WHERE Id_work_shifts = ? AND Status = 0", [insertId]);
-        const bookedHoursSet = new Set(bookedSlots.map(s => String(s.Hours).substring(0,8)));
-        const newSlots = slots.filter(s => !bookedHoursSet.has(s.substring(0,8)));
-        
+        const bookedHoursSet = new Set(bookedSlots.map(s => String(s.Hours).substring(0, 8)));
+        const newSlots = slots.filter(s => !bookedHoursSet.has(s.substring(0, 8)));
+
         if (newSlots.length > 0) {
           console.log(`Updating batch: Adding ${newSlots.length} slots for shift ${insertId}`);
           const hoursData = newSlots.map(slot => [insertId, slot, 1]);
@@ -391,7 +391,7 @@ router.put("/:id", async (req, res) => {
     // Xóa slot cũ (Chỉ khi slot đó chưa được book, giả sử Status = 0)
     // Để an toàn, có thể báo lỗi nếu có slot trạng thái khác 0 đang tồn tại ngoài giờ mới cập nhật.
     // Ở đây ta đơn giản hóa thành xóa hết slot trống dư thừa và tạo slot mới.
-    
+
     // Dọn dẹp: Xóa TẤT CẢ các slot KHÔNG PHẢI là ĐÃ ĐẶT (Status != 0)
     await connection.query(
       "DELETE FROM Work_shifts_hours WHERE Id_work_shifts = ? AND Status != 0",
@@ -403,11 +403,11 @@ router.put("/:id", async (req, res) => {
       "SELECT Hours FROM Work_shifts_hours WHERE Id_work_shifts = ? AND Status = 0",
       [id]
     );
-    const bookedHoursSet = new Set(bookedSlots.map(s => String(s.Hours).substring(0,8)));
+    const bookedHoursSet = new Set(bookedSlots.map(s => String(s.Hours).substring(0, 8)));
 
     // Tạo slots mới nếu chưa nằm trong bookedHoursSet
     const slots = generateTimeSlots(Start_time, End_time);
-    const newSlots = slots.filter(s => !bookedHoursSet.has(s.substring(0,8)));
+    const newSlots = slots.filter(s => !bookedHoursSet.has(s.substring(0, 8)));
 
     if (newSlots.length > 0) {
       console.log(`Updating single PUT: Adding ${newSlots.length} slots for shift ${id}`);
@@ -442,7 +442,7 @@ router.delete("/:id", async (req, res) => {
       "SELECT Id_work_shifts_hour FROM Work_shifts_hours WHERE Id_work_shifts = ? AND Status = 0",
       [id]
     );
-    
+
     if (bookedSlots.length > 0) {
       return res.status(400).json({ message: "Không thể xóa lịch đã có lịch đặt hoặc đang hoạt động" });
     }

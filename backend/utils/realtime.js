@@ -167,7 +167,7 @@ export const subscribeBookingContentChanged = (listener) => {
 
 export const startBookingContentWatcher = (database) => {
   if (bookingContentWatcher || !database) {
-    return () => {};
+    return () => { };
   }
 
   const checkFingerprint = async () => {
