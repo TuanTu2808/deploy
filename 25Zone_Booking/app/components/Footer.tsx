@@ -2,7 +2,7 @@ export default function Footer() {
   return (
     <footer className="bg-[#002d58] pt-12 pb-8 text-[13px] text-white border-t border-white/10 md:pt-16">
       <div className="mx-auto max-w-[1920px] px-4 sm:px-6 lg:px-6">
-        <div className="mb-10 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-5 lg:gap-10 md:mb-12">
+        <div className="mb-10 grid grid-cols-1 gap-8  w-[70%] mx-auto sm:grid-cols-2 lg:grid-cols-4 lg:gap-10 md:mb-12">
           <div className="flex flex-col items-center text-center sm:items-start sm:text-left lg:items-center lg:text-center">
             <div className="mb-4 flex flex-col items-center sm:items-start lg:items-center">
               <div className="mb-2">
@@ -84,7 +84,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          <div>
+          {/* <div>
             <h3 className="mb-5 text-base font-bold uppercase tracking-wider text-white md:mb-6">
               Kết nối với chúng tôi
             </h3>
@@ -105,8 +105,7 @@ export default function Footer() {
             <p className="text-gray-400 text-xs leading-relaxed">
               Theo dõi 25Zone trên mạng xã hội để cập nhật xu hướng tóc mới nhất và nhận ưu đãi độc quyền.
             </p>
-          </div>
-
+          </div> */}
         </div>
 
         <div className="border-t border-white/5 pt-6 text-center md:pt-8">

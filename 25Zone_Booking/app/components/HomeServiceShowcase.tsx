@@ -1133,12 +1133,6 @@ export default function HomeServiceShowcase() {
 
               <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
                 <div className="min-w-0 sm:min-w-[240px] lg:min-w-[280px]">
-                  <label
-                    htmlFor="service-category-filter"
-                    className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[#6B85A3]"
-                  >
-                    Chọn danh mục
-                  </label>
                   <div>
                     <select
                       id="service-category-filter"
