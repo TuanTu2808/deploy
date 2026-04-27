@@ -140,8 +140,9 @@ const getBucketExpression = (dateColumn, granularity) => {
   return `DATE_FORMAT(${dateColumn}, '%Y-%m-%d')`;
 };
 
-const getDashboardConfig = (view) => {
+const getDashboardConfig = (view, storeId) => {
   if (view === "services") {
+    const storeCond = storeId ? ` AND b.Id_store = ${Number(storeId)}` : "";
     return {
       summaryQuery: `
         SELECT
@@ -151,25 +152,25 @@ const getDashboardConfig = (view) => {
           COALESCE(SUM(CASE WHEN b.Status = 'completed' THEN 1 ELSE 0 END), 0) AS completed,
           COALESCE(SUM(CASE WHEN b.Status = 'cancelled' THEN 1 ELSE 0 END), 0) AS cancelled
         FROM Bookings b
-        WHERE b.Booking_date >= ? AND b.Booking_date < ?
+        WHERE b.Booking_date >= ? AND b.Booking_date < ?${storeCond}
       `,
       previousRevenueQuery: `
         SELECT COALESCE(SUM(CASE WHEN b.Status <> 'cancelled' THEN b.Total_price ELSE 0 END), 0) AS revenue
         FROM Bookings b
-        WHERE b.Booking_date >= ? AND b.Booking_date < ?
+        WHERE b.Booking_date >= ? AND b.Booking_date < ?${storeCond}
       `,
       unitsQuery: `
         SELECT COALESCE(COUNT(bd.Id_Booking_detail), 0) AS units
         FROM Booking_detail bd
         INNER JOIN Bookings b ON b.Id_booking = bd.Id_booking
-        WHERE b.Status <> 'cancelled' AND b.Booking_date >= ? AND b.Booking_date < ?
+        WHERE b.Status <> 'cancelled' AND b.Booking_date >= ? AND b.Booking_date < ?${storeCond}
       `,
       chartQuery: (granularity) => `
         SELECT
           ${getBucketExpression("b.Booking_date", granularity)} AS bucket_key,
           COALESCE(SUM(b.Total_price), 0) AS revenue
         FROM Bookings b
-        WHERE b.Status <> 'cancelled' AND b.Booking_date >= ? AND b.Booking_date < ?
+        WHERE b.Status <> 'cancelled' AND b.Booking_date >= ? AND b.Booking_date < ?${storeCond}
         GROUP BY bucket_key
         ORDER BY bucket_key ASC
       `,
@@ -185,7 +186,7 @@ const getDashboardConfig = (view) => {
         LEFT JOIN Services sv ON sv.Id_services = bd.Id_services
         LEFT JOIN Categories_service cs ON cs.Id_category_service = sv.Id_category_service
         LEFT JOIN Combos cb ON cb.Id_combo = bd.Id_combo
-        WHERE b.Status <> 'cancelled' AND b.Booking_date >= ? AND b.Booking_date < ?
+        WHERE b.Status <> 'cancelled' AND b.Booking_date >= ? AND b.Booking_date < ?${storeCond}
         GROUP BY id, name, category
         ORDER BY quantity DESC, revenue DESC, name ASC
         LIMIT 6
@@ -321,7 +322,8 @@ const getPromotionStats = async () => {
   };
 };
 
-const getBookingsNeedingAttention = async () => {
+const getBookingsNeedingAttention = async (storeId) => {
+  const storeCond = storeId ? ` AND b.Id_store = ${Number(storeId)}` : "";
   const [rows] = await database.query(
     `
       SELECT
@@ -338,7 +340,7 @@ const getBookingsNeedingAttention = async () => {
       LEFT JOIN Booking_detail bd ON bd.Id_booking = b.Id_booking
       LEFT JOIN Services sv ON sv.Id_services = bd.Id_services
       LEFT JOIN Combos cb ON cb.Id_combo = bd.Id_combo
-      WHERE b.Status IN (?)
+      WHERE b.Status IN (?) ${storeCond}
       GROUP BY b.Id_booking, b.Booking_date, b.Start_time, b.Status, u.Name_user, s.Name_store
       ORDER BY b.Booking_date ASC, b.Start_time ASC, b.Id_booking ASC
       LIMIT 6
@@ -368,7 +370,7 @@ router.get("/", async (req, res) => {
       : "month";
 
     const range = buildDashboardRange(granularity, req.query.date);
-    const config = getDashboardConfig(view);
+    const config = getDashboardConfig(view, req.query.storeId);
     const rangeParams = [toDateString(range.start), toDateString(range.end)];
     const previousRangeParams = [toDateString(range.previousStart), toDateString(range.previousEnd)];
 
@@ -379,7 +381,7 @@ router.get("/", async (req, res) => {
     const [rankingRows] = await database.query(config.rankingQuery, rangeParams);
     const [lowStockItems, bookingsNeedingAttention, promotionStats] = await Promise.all([
       getLowStockItems(),
-      getBookingsNeedingAttention(),
+      getBookingsNeedingAttention(req.query.storeId),
       view === "products" ? getPromotionStats() : Promise.resolve(null),
     ]);
 

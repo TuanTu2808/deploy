@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Chart from "chart.js/auto";
-import { API_BASE, authorizedAdminFetch, clearAdminSession } from "@/app/lib/admin-auth";
+import { API_BASE, authorizedAdminFetch, clearAdminSession, getAdminStoreId } from "@/app/lib/admin-auth";
 
 type DashboardView = "products" | "services";
 type DashboardGranularity = "day" | "month" | "year";
@@ -262,7 +262,10 @@ const getStockSeverity = (quantity: number) => {
 };
 
 export default function AdminDashboardPage() {
-  const [view, setView] = useState<DashboardView>("services");
+  const adminStoreId = getAdminStoreId();
+  const isAdminTong = adminStoreId === 0 || adminStoreId === null || Number.isNaN(adminStoreId);
+
+  const [view, setView] = useState<DashboardView>(isAdminTong ? "products" : "services");
   const [granularity, setGranularity] = useState<DashboardGranularity>("month");
   const [selectedDate, setSelectedDate] = useState(() => defaultDateValue("month"));
   const [dashboard, setDashboard] = useState<DashboardPayload | null>(null);
@@ -345,6 +348,9 @@ const handleUpdateStatus = async (
           granularity,
           date: normalizeDateValue(selectedDate, granularity),
         });
+        if (!isAdminTong) {
+          query.append("storeId", String(adminStoreId));
+        }
 
         const response = await authorizedFetch(`${API_BASE}/api/admin/dashboard?${query.toString()}`, {
           cache: "no-store",
@@ -860,7 +866,7 @@ const handleUpdateStatus = async (
         </div>
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          {(["products", "services"] as DashboardView[]).map((tab) => {
+          {(isAdminTong ? (["products", "services"] as DashboardView[]) : (["services"] as DashboardView[])).map((tab) => {
             const isActive = tab === view;
             return (
               <button

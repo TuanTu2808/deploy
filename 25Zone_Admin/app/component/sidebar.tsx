@@ -10,12 +10,16 @@ import {
   getAdminName,
   getAdminRefreshToken,
   getAdminToken,
+  getAdminStoreId,
 } from "@/app/lib/admin-auth";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [adminName] = useState(() => getAdminName() || "Quản trị viên");
+  const [storeId] = useState(() => getAdminStoreId());
+  const isAdminTong = storeId === 0 || storeId === null || isNaN(storeId);
+  const adminRoleDisplay = isAdminTong ? "Admin Tổng" : "Admin Chi Nhánh";
   const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
@@ -206,10 +210,12 @@ export default function Sidebar() {
         </div>
 
         {/* GROUP */}
-        <div className="space-y-2">
-          <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">
-            Sản phẩm & đơn hàng
-          </p>
+        {isAdminTong && (
+          <>
+            <div className="space-y-2">
+              <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">
+                Sản phẩm & đơn hàng
+              </p>
 
           <Link href="/admin/sanpham">
             <div
@@ -275,6 +281,8 @@ export default function Sidebar() {
             </div>
           </Link>
         </div>
+        </>
+        )}
 
         <div className="space-y-2">
           <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">
@@ -378,7 +386,7 @@ export default function Sidebar() {
 
           <div>
             <p className="font-medium text-sm">{adminName}</p>
-            <p className="text-xs text-gray-500">Quản trị viên</p>
+            <p className="text-xs text-gray-500">{adminRoleDisplay}</p>
           </div>
         </div>
 

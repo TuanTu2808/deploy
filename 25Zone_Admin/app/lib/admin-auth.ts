@@ -8,6 +8,7 @@ export const ADMIN_REFRESH_TOKEN_COOKIE = "admin_refresh_token";
 export const ADMIN_ROLE_COOKIE = "admin_role";
 export const ADMIN_NAME_COOKIE = "admin_name";
 export const ADMIN_ID_COOKIE = "admin_id";
+export const ADMIN_STORE_ID_COOKIE = "admin_store_id";
 export const ADMIN_REMEMBER_COOKIE = "admin_remember";
 
 const PERSIST_DAYS = 30;
@@ -16,6 +17,7 @@ export type AdminUserSession = {
   Id_user: number;
   Name_user: string;
   role: string;
+  Id_store?: number | null;
 };
 
 type PersistOptions = {
@@ -68,6 +70,10 @@ export const getAdminRefreshToken = () => getCookieValue(ADMIN_REFRESH_TOKEN_COO
 export const getAdminRole = () => getCookieValue(ADMIN_ROLE_COOKIE);
 export const getAdminName = () => getCookieValue(ADMIN_NAME_COOKIE);
 export const getAdminId = () => Number(getCookieValue(ADMIN_ID_COOKIE) || 0);
+export const getAdminStoreId = () => {
+  const val = getCookieValue(ADMIN_STORE_ID_COOKIE);
+  return val ? Number(val) : null;
+};
 export const getAdminRemember = () => getCookieValue(ADMIN_REMEMBER_COOKIE) === "1";
 
 export const getAdminAuthHeaders = (contentType = false): HeadersInit => {
@@ -93,6 +99,7 @@ export const persistAdminSession = ({
   setCookie(ADMIN_ROLE_COOKIE, user.role, remember);
   setCookie(ADMIN_NAME_COOKIE, user.Name_user, remember);
   setCookie(ADMIN_ID_COOKIE, String(user.Id_user), remember);
+  setCookie(ADMIN_STORE_ID_COOKIE, String(user.Id_store ?? ""), remember);
   setCookie(ADMIN_REMEMBER_COOKIE, remember ? "1" : "0", remember);
 };
 
@@ -102,6 +109,7 @@ export const clearAdminSession = () => {
   clearCookie(ADMIN_ROLE_COOKIE);
   clearCookie(ADMIN_NAME_COOKIE);
   clearCookie(ADMIN_ID_COOKIE);
+  clearCookie(ADMIN_STORE_ID_COOKIE);
   clearCookie(ADMIN_REMEMBER_COOKIE);
 };
 

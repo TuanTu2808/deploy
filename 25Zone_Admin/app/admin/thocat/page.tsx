@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { API_BASE, authorizedAdminFetch } from "@/app/lib/admin-auth";
+import { API_BASE, authorizedAdminFetch, getAdminStoreId } from "@/app/lib/admin-auth";
 
 export default function StylistPage() {
   const [stylists, setStylists] = useState<any[]>([]);
@@ -9,9 +9,12 @@ export default function StylistPage() {
   const [loading, setLoading] = useState(true);
   const [selectedStylist, setSelectedStylist] = useState<any>(null);
 
+  const adminStoreId = getAdminStoreId();
+  const isAdminTong = adminStoreId === 0 || adminStoreId === null || Number.isNaN(adminStoreId);
+
   // Pagination & Filter states
   const [currentPage, setCurrentPage] = useState(1);
-  const [filterStore, setFilterStore] = useState("all");
+  const [filterStore, setFilterStore] = useState(isAdminTong ? "all" : String(adminStoreId));
   const [filterRole, setFilterRole] = useState("all");
   const [filterSearch, setFilterSearch] = useState("");
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
@@ -605,7 +608,7 @@ export default function StylistPage() {
                 />
               </div>
 
-              <select value={filterStore} onChange={e => setFilterStore(e.target.value)} className="border border-slate-200 px-3 py-1.5 rounded-lg text-sm text-slate-600 focus:outline-none">
+              <select value={filterStore} onChange={e => setFilterStore(e.target.value)} disabled={!isAdminTong} className="border border-slate-200 px-3 py-1.5 rounded-lg text-sm text-slate-600 focus:outline-none disabled:opacity-60 disabled:bg-gray-100">
                 <option value="all">Tất cả chi nhánh</option>
                 {stores.map(s => <option key={s.Id_store} value={s.Id_store}>{s.Name_store}</option>)}
               </select>

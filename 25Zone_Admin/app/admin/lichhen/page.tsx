@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 
+import { getAdminStoreId } from "@/app/lib/admin-auth";
+
 // API endpoints Configuration
 const API_URL = "http://localhost:5001/api";
 
@@ -23,7 +25,11 @@ export default function LichHenPage() {
 
   // Filters
   const SINGLE_SELECT_CATEGORY_IDS = [1, 2, 3]; // Cắt, Uốn, Nhuộm
-  const [storeId, setStoreId] = useState("");
+  
+  const adminStoreId = getAdminStoreId();
+  const isAdminTong = adminStoreId === 0 || adminStoreId === null || Number.isNaN(adminStoreId);
+
+  const [storeId, setStoreId] = useState(isAdminTong ? "" : String(adminStoreId));
   const [stylistId, setStylistId] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [dateMode, setDateMode] = useState<"day" | "month" | "year">("day");
@@ -653,8 +659,11 @@ export default function LichHenPage() {
     const today = new Date();
     return bookings.filter((b) => {
       // 1. Store filter
-      if (storeId && String(b.store_name) !== String(storeId)) {
-        const storeObj = stores.find((s) => String(s.Id_store) === storeId);
+      if (!isAdminTong) {
+        const storeObj = stores.find((s) => String(s.Id_store) === String(adminStoreId));
+        if (!storeObj || String(b.store_name) !== String(storeObj.Name_store)) return false;
+      } else if (storeId && String(b.store_name) !== String(storeId)) {
+        const storeObj = stores.find((s) => String(s.Id_store) === String(storeId));
         if (storeObj && b.store_name !== storeObj.Name_store) return false;
       }
       // 2. Stylist filter
@@ -855,9 +864,10 @@ export default function LichHenPage() {
           {/* FILTER */}
           <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-wrap items-center gap-3">
             <select
-              className="border border-slate-200 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+              className="border border-slate-200 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-blue-500 disabled:opacity-60 disabled:bg-gray-100"
               value={storeId}
               onChange={(e) => setStoreId(e.target.value)}
+              disabled={!isAdminTong}
             >
               <option value="">Tất cả Chi nhánh</option>
               {stores.map((s) => (
