@@ -32,9 +32,7 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-// =========================
 // POST: Upload ảnh dịch vụ
-// =========================
 router.post("/", requireAdminAuth, upload.array("images"), async (req, res) => {
   try {
     const { Id_services } = req.body;
@@ -47,7 +45,6 @@ router.post("/", requireAdminAuth, upload.array("images"), async (req, res) => {
       return res.status(400).json({ error: "Không có file ảnh" });
     }
 
-    // Lưu vào DB
     for (const file of req.files) {
       const imageUrl = `/image/dichvu/${file.filename}`;
 

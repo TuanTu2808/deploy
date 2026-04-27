@@ -50,17 +50,21 @@ router.get("/services", async (_req, res) => {
         c.Price,
         c.Duration_time,
         c.Status,
+        c.Image_URL,
         COALESCE(SUM(CASE WHEN s.Id_category_service IN (1, 2, 3) THEN 1 ELSE 0 END), 0) AS hair_score,
         COALESCE(SUM(CASE WHEN s.Id_category_service IN (4, 5) THEN 1 ELSE 0 END), 0) AS relax_score,
         GROUP_CONCAT(DISTINCT s.Id_category_service ORDER BY s.Id_category_service) AS category_ids,
         GROUP_CONCAT(DISTINCT cs.Name ORDER BY cs.Id_category_service SEPARATOR '||') AS category_names,
-        (
-          SELECT i.Image_URL
-          FROM Combo_Detail cd_image
-          JOIN Image_Services i ON i.Id_services = cd_image.Id_services
-          WHERE cd_image.Id_combo = c.Id_combo
-          ORDER BY i.Id_image_service ASC
-          LIMIT 1
+        COALESCE(
+          c.Image_URL,
+          (
+            SELECT i.Image_URL
+            FROM Combo_Detail cd_image
+            JOIN Image_Services i ON i.Id_services = cd_image.Id_services
+            WHERE cd_image.Id_combo = c.Id_combo
+            ORDER BY i.Id_image_service ASC
+            LIMIT 1
+          )
         ) AS image_url,
         (
           SELECT s_desc.Description
@@ -78,7 +82,7 @@ router.get("/services", async (_req, res) => {
       LEFT JOIN Services s ON s.Id_services = cd.Id_services AND s.Status = 1
       LEFT JOIN Categories_service cs ON cs.Id_category_service = s.Id_category_service
       WHERE c.Status = 1
-      GROUP BY c.Id_combo, c.Name, c.Price, c.Duration_time, c.Status
+      GROUP BY c.Id_combo, c.Name, c.Price, c.Duration_time, c.Status, c.Image_URL
       ORDER BY c.Id_combo DESC
       `
     );
