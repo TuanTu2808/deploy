@@ -307,6 +307,12 @@ export default function ProductDetailPage() {
                 <button
                   type="button"
                   className="w-11 h-11 flex items-center justify-center text-xl hover:bg-gray-50 transition"
+                >
+                  -
+                </button>
+                <button
+                  type="button"
+                  className="w-11 h-11 flex items-center justify-center text-xl hover:bg-gray-50 transition"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                 >
                   -
@@ -320,6 +326,12 @@ export default function ProductDetailPage() {
                   type="button"
                   className="w-11 h-11 flex items-center justify-center text-xl hover:bg-gray-50 transition"
                   onClick={() => setQuantity(quantity + 1)}
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  className="w-11 h-11 flex items-center justify-center text-xl hover:bg-gray-50 transition"
                 >
                   +
                 </button>

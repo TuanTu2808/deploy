@@ -2,7 +2,9 @@
   "name": "25zone-next",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000",
+    "dev": "next dev --webpack",
+    "dev:turbo": "next dev",
+    "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
     "build": "next build",
     "start": "next start -p 3000",
     "lint": "next lint"
@@ -10,8 +12,8 @@
   "dependencies": {
     "lenis": "^1.3.17",
     "next": "^16.1.6",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.7",

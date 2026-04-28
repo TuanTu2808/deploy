@@ -111,11 +111,7 @@ export default function CheckoutPage() {
       localStorage.removeItem(getUserStorageKey("cart"));
       localStorage.removeItem("voucher");
 
-      if (payment === 2) {
-        router.push(`/checkout/vietqr/${data.orderId}?amount=${finalAmount}`);
-      } else {
-        router.push(`/checkout/success/${data.orderId}`);
-      }
+      router.push(`/checkout/success/${data.orderId}`);
     } catch (err) {
       console.error("LỖI ĐẶT HÀNG:", err);
       alert("Đặt hàng thất bại!");
@@ -189,25 +185,36 @@ export default function CheckoutPage() {
                   Phương thức thanh toán
                 </h2>
 
-                {/* MoMo */}
+                {/* Bank transfer */}
                 <label className="cursor-pointer">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4 border-b">
                     <div className="flex items-center gap-3">
                       <input
-                        className="w-4 h-4 accent-[#a50064]"
+                        className="w-4 h-4 accent-[#003366]"
                         name="payment"
                         type="radio"
-                        checked={payment === 2}
-                        onChange={() => setPayment(2)}
                       />
                       <div className="flex items-center gap-2">
                         <span className="w-9 h-9 rounded-full bg-[#003366]/10 text-[#003366] flex items-center justify-center flex-shrink-0">
-                          <i className="fa-solid fa-qrcode"></i>
+                          <i className="fa-solid fa-building-columns"></i>
                         </span>
                         <span className="font-medium text-gray-900">
-                          Thanh toán chuyển khoản (VietQR)
+                          Chuyển khoản ngân hàng
                         </span>
                       </div>
+                    </div>
+
+                    <div className="flex gap-2 items-center sm:justify-end">
+                      <img
+                        className="h-9 w-auto rounded"
+                        src="/img/momo.jpg"
+                        alt="MoMo"
+                      />
+                      <img
+                        className="h-9 w-auto rounded"
+                        src="/img/vnpay.png"
+                        alt="VNPAY"
+                      />
                     </div>
                   </div>
                 </label>
