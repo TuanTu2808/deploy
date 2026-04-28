@@ -6,7 +6,7 @@ export default function Footer() {
           <div className="flex flex-col items-center text-center sm:items-start sm:text-left lg:items-center lg:text-center">
             <div className="mb-4 flex flex-col items-center sm:items-start lg:items-center">
               <div className="mb-2">
-                <span className="material-symbols-outlined !text-[64px] leading-none font-light text-primary">
+                <span className="material-symbols-outlined !text-[64px] leading-none font-light text-[#33B1FA]">
                   content_cut
                 </span>
               </div>

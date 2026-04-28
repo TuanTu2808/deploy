@@ -11,11 +11,12 @@ import { useAuth } from "@/app/components/auth/AuthProvider";
 import { toAbsoluteImageUrl } from "@/lib/api";
 import { useFavorites } from "@/app/hooks/useFavorites";
 import { useCart } from "@/app/hooks/useCart";
+import { getUserStorageKey } from "@/lib/user-storage";
+import { LoginSuccessPopup } from "@/app/components/auth/LoginSuccessPopup";
 
 const nav = [
-  { href: "http://localhost:3003", label: "Trang chủ" },
-  { href: "/", label: "25Zoneshop" },
-  { href: "#", label: "Danh mục" },
+  { href: "/", label: "Trang chủ" },
+  { href: "http://localhost:3003", label: "25Zonebooking" },
   { href: "/products", label: "Sản phẩm" },
   { href: "/promotions", label: "Khuyến mãi" },
   { href: "/news", label: "Tin tức" },
@@ -28,6 +29,7 @@ export default function Header() {
   const [isDesktop, setIsDesktop] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [showLoginSuccess, setShowLoginSuccess] = useState(false);
 
   const pathname = usePathname();
   const router = useRouter();
@@ -48,6 +50,8 @@ export default function Header() {
     setSearchOpen(false);
   };
 
+  const PROTECTED_ROUTES = ["/checkout", "/account", "/orders"];
+
   const logout = () => {
     // Dispatch event TRƯỚC khi signOut để UI cập nhật
     window.dispatchEvent(new Event("favorites-updated"));
@@ -57,7 +61,13 @@ export default function Header() {
     setSearchOpen(false);
     setAuthOpen(false);
 
-    router.push("/");
+    const currentPath = window.location.pathname;
+    const isProtected = PROTECTED_ROUTES.some((r) => currentPath.startsWith(r));
+    if (isProtected) {
+      router.push("/login");
+    } else {
+      router.push("/");
+    }
   };
 
   useEffect(() => {
@@ -98,6 +108,21 @@ export default function Header() {
       window.removeEventListener("favorites-updated", handleUpdate);
       window.removeEventListener("favorites-toast", handleToast);
     };
+  }, []);
+
+  const [cartCount, setCartCount] = useState(0);
+
+  useEffect(() => {
+    const updateCartCount = () => {
+      const key = getUserStorageKey("cart");
+      const cart = JSON.parse(localStorage.getItem(key) || "[]");
+      const count = cart.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
+      setCartCount(count);
+    };
+
+    updateCartCount();
+    window.addEventListener("cart-updated", updateCartCount);
+    return () => window.removeEventListener("cart-updated", updateCartCount);
   }, []);
 
   const lockScroll = useMemo(
@@ -216,11 +241,16 @@ export default function Header() {
 
           <Link
             href="/cart"
-            className={iconBtnClass}
+            className={iconBtnClass + " relative"}
             aria-label="Cart"
             onClick={() => setAuthOpen(false)}
           >
             <i className="fa-solid fa-cart-shopping text-[20px]" />
+            {cartCount > 0 && (
+              <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                {cartCount > 99 ? '99+' : cartCount}
+              </span>
+            )}
           </Link>
 
           {!user && (
@@ -396,13 +426,13 @@ export default function Header() {
             ) : (
               <div className="space-y-4">
                 {favList.map((item: any, index: number) => (
-                  <div 
-                    key={item.Id_product} 
+                  <div
+                    key={item.Id_product}
                     className="group relative flex gap-4 bg-white p-4 border border-gray-100 rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-blue-100 transition-all duration-300"
                     style={{ animationFillMode: 'both', animationDelay: `${index * 50}ms` }}
                   >
                     {/* Delete button absolutely positioned on top right */}
-                    <button 
+                    <button
                       onClick={(e) => { e.preventDefault(); removeFavorite(item.Id_product); }}
                       className="absolute right-3 top-3 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-rose-500 bg-white hover:bg-rose-50 rounded-full transition-all md:opacity-0 md:group-hover:opacity-100 shadow-sm z-10"
                       aria-label="Xóa khỏi danh sách"
@@ -410,12 +440,12 @@ export default function Header() {
                       <i className="fa-solid fa-xmark text-sm"></i>
                     </button>
 
-                    <Link 
-                      href={`/products/${item.Id_product}`} 
+                    <Link
+                      href={`/products/${item.Id_product}`}
                       onClick={() => setFavoritesOpen(false)}
                       className="shrink-0 w-[88px] h-[88px] bg-[#f8f9fb] rounded-xl p-2 flex items-center justify-center overflow-hidden"
                     >
-                      <img 
+                      <img
                         src={(() => {
                           if (!item.Thumbnail) return "/img/placeholder.png";
                           try {
@@ -424,15 +454,15 @@ export default function Header() {
                           } catch {
                             return item.Thumbnail.startsWith("/") ? `http://localhost:5001${item.Thumbnail}` : `http://localhost:5001/${item.Thumbnail}`;
                           }
-                        })()} 
-                        alt={item.Name_product} 
-                        className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 ease-out" 
+                        })()}
+                        alt={item.Name_product}
+                        className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 ease-out"
                       />
                     </Link>
 
                     <div className="flex flex-1 flex-col justify-between py-0.5 min-w-0">
-                      <Link 
-                        href={`/products/${item.Id_product}`} 
+                      <Link
+                        href={`/products/${item.Id_product}`}
                         onClick={() => setFavoritesOpen(false)}
                         className="pr-6 block"
                       >
@@ -440,26 +470,26 @@ export default function Header() {
                           {item.Name_product}
                         </h4>
                       </Link>
-                      
+
                       <div className="flex items-end justify-between mt-2">
                         <div className="flex flex-col">
                           {item.Sale_Price && item.Price && item.Sale_Price < item.Price ? (
-                             <>
+                            <>
                               <span className="text-[#003366] font-extrabold text-[16px]">
                                 {item.Sale_Price.toLocaleString('vi-VN')}₫
                               </span>
                               <span className="text-[12px] text-slate-400 line-through font-medium">
                                 {item.Price.toLocaleString('vi-VN')}₫
                               </span>
-                             </>
+                            </>
                           ) : (
-                              <span className="text-[#003366] font-extrabold text-[16px]">
-                                {(item.Price || 0).toLocaleString('vi-VN')}₫
-                              </span>
+                            <span className="text-[#003366] font-extrabold text-[16px]">
+                              {(item.Price || 0).toLocaleString('vi-VN')}₫
+                            </span>
                           )}
                         </div>
 
-                        <button 
+                        <button
                           onClick={(e) => {
                             e.preventDefault();
                             addToCart(item);
@@ -477,14 +507,14 @@ export default function Header() {
               </div>
             )}
           </div>
-          
+
           {favList.length > 0 && (
             <div className="absolute bottom-0 left-0 w-full p-6 border-t border-gray-100 bg-white z-20 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] flex flex-col gap-4">
               <div className="flex justify-between items-center px-1">
                 <span className="text-[15px] font-bold text-slate-500">
                   Tổng: <span className="text-[#003366] font-extrabold">{favList.length}</span> sản phẩm
                 </span>
-                <button 
+                <button
                   onClick={() => {
                     favList.forEach(item => removeFavorite(item.Id_product));
                     window.dispatchEvent(new CustomEvent("favorites-toast", { detail: { product: { Name_product: "Thành công" }, message: "Đã xóa toàn bộ danh sách!" } }));
@@ -499,6 +529,7 @@ export default function Header() {
                   onClick={() => {
                     favList.forEach(item => addToCart(item));
                     window.dispatchEvent(new CustomEvent("favorites-toast", { detail: { product: favList[0] || { Name_product: "Thành công" }, message: `Đã thêm ${favList.length} món vào giỏ hàng!` } }));
+                    window.dispatchEvent(new Event("cart-updated"));
                     setFavoritesOpen(false);
                   }}
                   className="flex-1 py-4 rounded-xl font-extrabold text-[15px] bg-[#003366] text-white hover:bg-[#33B1FA] hover:shadow-lg hover:shadow-[#33B1FA]/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
@@ -635,8 +666,11 @@ export default function Header() {
         mode={authMode}
         onClose={() => setAuthOpen(false)}
         onModeChange={(next) => setAuthMode(next)}
+        onLoginSuccess={() => setShowLoginSuccess(true)}
         logoSrc="/img/image%202.png"
       />
+
+      {showLoginSuccess && <LoginSuccessPopup returnTo="RELOAD" />}
     </header>
   );
 }

@@ -2,9 +2,10 @@
 import CartPopup from "@/app/components/CartPopup";
 import { useCart } from "@/app/hooks/useCart";
 import { Product } from "../../../types/sanpham.type";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useAuth } from "@/app/components/auth/AuthProvider";
 import {
   DEFAULT_MAX,
   DEFAULT_MIN,
@@ -37,9 +38,11 @@ import { useFavorites } from "@/app/hooks/useFavorites";
 function ProductCard({
   product,
   onAddToCart,
+  onBuyNow,
 }: {
   product: Product;
   onAddToCart: (product: Product) => void;
+  onBuyNow: (product: Product) => void;
 }) {
   const { toggleFavorite, isFavorite } = useFavorites();
   const [liked, setLiked] = useState(false);
@@ -52,37 +55,37 @@ function ProductCard({
   }, [product.Id_product]);
 
   return (
-    <Link href={`/products/${product.Id_product}`} className="block h-full relative group cursor-pointer bg-white rounded-[34px] shadow-2xl overflow-hidden flex flex-col hover:-translate-y-1 transition border border-gray-100">
-      <div className="aspect-square bg-[#f8f9fb] flex items-center justify-center p-4 relative">
+    <Link href={`/products/${product.Id_product}`} className="block h-full w-full">
+      <div className="group bg-white rounded-[32px] overflow-hidden shadow-2xl w-full h-full flex flex-col transition-transform hover:-translate-y-1 cursor-pointer border border-gray-100">
+        <div className="relative w-full overflow-hidden h-[220px]">
           <img
             src={getImageUrl(product.Thumbnail)}
             alt={product.Name_product}
-            className="w-full h-full object-contain group-hover:scale-[1.03] transition"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         </div>
 
-        <div className="p-6 flex flex-col flex-1 gap-2">
+        <div className="bg-white flex-1 flex flex-col p-4 sm:p-5">
           <h3 className="font-extrabold text-[#003366] uppercase text-[16px] line-clamp-2">
             {product.Name_product}
           </h3>
 
-          <p className="text-sm text-[#003366] font-semibold line-clamp-1">
+          <p className="text-sm text-[#003366] font-semibold line-clamp-1 mt-1">
             {product.Category_Name}
           </p>
 
-          <div className="w-12 h-1 bg-[#003366] rounded-full my-2"></div>
+          <div className="h-[3px] w-12 bg-[#003366] mt-2 mb-3"></div>
 
-          <div className="mt-auto pt-2">
+          <div className="mt-auto">
             <p className="text-xs font-semibold text-gray-400 mb-1">GIÁ SẢN PHẨM</p>
             <div className="flex items-center justify-between mb-4">
               <p className="text-[#8b1e1e] font-extrabold text-2xl tracking-tight">
                 {product.Price.toLocaleString()}đ
               </p>
-              
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(product); }}
-                className="w-10 h-10 rounded-full bg-[#003366] flex items-center justify-center hover:bg-[#002244] hover:scale-105 active:scale-95 text-white transition-all shadow-md"
+                className="ml-auto w-10 h-10 flex-shrink-0 rounded-full bg-[#003366] text-white flex items-center justify-center hover:bg-[#002244] hover:scale-105 active:scale-95 transition-all shadow-md"
               >
                 <i className={liked ? "fa-solid fa-heart" : "fa-regular fa-heart"}></i>
               </button>
@@ -91,20 +94,20 @@ function ProductCard({
             <button
               onClick={(e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 onAddToCart(product);
               }}
               disabled={product.Quantity === 0}
-              className={`w-full py-2 rounded-xl font-bold text-sm
-              ${
-                product.Quantity === 0
-                  ? "bg-gray-400 text-white cursor-not-allowed"
-                  : "bg-[#003366] text-white hover:bg-[#00264d]"
-              }`}
+              className={`w-full py-2 rounded-xl font-bold text-sm transition ${product.Quantity === 0
+                ? "bg-gray-400 text-white cursor-not-allowed"
+                : "bg-[#003366] text-white hover:bg-[#00264d]"
+                }`}
             >
-              {product.Quantity === 0 ? "HẾT HÀNG" : "MUA NGAY"}
+              {product.Quantity === 0 ? "HẾT HÀNG" : "THÊM SẢN PHẨM"}
             </button>
           </div>
         </div>
+      </div>
     </Link>
   );
 }
@@ -116,6 +119,18 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const { addToCart, showPopup, popupProduct } = useCart();
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const handleBuyNow = (product: Product) => {
+    if (!user) {
+      localStorage.setItem("pending_buynow", JSON.stringify({ ...product, quantity: 1 }));
+      router.push("/login?returnTo=/checkout");
+    } else {
+      addToCart(product);
+      router.push("/checkout");
+    }
+  };
 
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
@@ -185,24 +200,22 @@ export default function ProductsPage() {
     setHasAppliedFilter(false);
   };
 
-  const handleApplyFilter = async () => {
+  // Helper: fetch filter with explicit values to avoid stale closure
+  const applyFilterWith = async (
+    cats: string[],
+    brands: string[],
+    pMin: string,
+    pMax: string
+  ) => {
     try {
       setLoading(true);
-
       const params = new URLSearchParams();
-
-      selectedCategories.forEach((c) => params.append("categories", c));
-      selectedBrands.forEach((b) => params.append("brands", b));
-
-      if (priceMin !== DEFAULT_MIN) params.append("priceMin", priceMin);
-      if (priceMax !== DEFAULT_MAX) params.append("priceMax", priceMax);
-
-      const res = await fetch(
-        `http://localhost:5001/api/sanpham/filter?${params.toString()}`,
-      );
-
+      cats.forEach((c) => params.append("categories", c));
+      brands.forEach((b) => params.append("brands", b));
+      if (pMin !== DEFAULT_MIN) params.append("priceMin", pMin);
+      if (pMax !== DEFAULT_MAX) params.append("priceMax", pMax);
+      const res = await fetch(`http://localhost:5001/api/sanpham/filter?${params.toString()}`);
       const data = await res.json();
-
       setProducts(data);
       setHasAppliedFilter(true);
       setCurrentPage(1);
@@ -212,6 +225,19 @@ export default function ProductsPage() {
       setLoading(false);
     }
   };
+
+  // Auto-filter khi category/brand thay đổi
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    applyFilterWith(selectedCategories, selectedBrands, priceMin, priceMax);
+  }, [selectedCategories, selectedBrands]);
+
+  const handleApplyFilter = () =>
+    applyFilterWith(selectedCategories, selectedBrands, priceMin, priceMax);
 
   return (
     <main className="max-w-[1604px] mx-auto px-6 py-10">
@@ -254,6 +280,7 @@ export default function ProductsPage() {
                     key={item.Id_product}
                     product={item}
                     onAddToCart={addToCart}
+                    onBuyNow={handleBuyNow}
                   />
                 ))}
               </div>
@@ -266,11 +293,10 @@ export default function ProductsPage() {
                       key={page}
                       onClick={() => setCurrentPage(page)}
                       className={`w-10 h-10 rounded-[8px] font-extrabold text-[15px] transition focus:outline-none flex items-center justify-center
-                      ${
-                        currentPage === page
+                      ${currentPage === page
                           ? "bg-[#003366] text-white shadow-sm border border-[#003366]"
                           : "bg-white border border-[#a2b5cd] text-[#003366] hover:bg-[#f2f6f9]"
-                      }`}
+                        }`}
                     >
                       {page}
                     </button>

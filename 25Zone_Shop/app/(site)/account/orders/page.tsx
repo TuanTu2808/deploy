@@ -1,10 +1,12 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AccountShell } from "@/app/components/account/AccountShell";
 import { useAuth } from "@/app/components/auth/AuthProvider";
 import { apiRequest, errorMessage, toAbsoluteImageUrl } from "@/lib/api";
+import { getUserStorageKey } from "@/lib/user-storage";
 
 type OrderItem = {
   Id_order: number;
@@ -17,6 +19,23 @@ type OrderItem = {
   First_product_name: string;
   First_product_image: string | null;
 };
+
+type OrderDetailItem = {
+  Id_product: number;
+  Quantity: number;
+  Price: number;
+  Name_product: string;
+  Size: string | null;
+  Image_url: string | null;
+};
+
+type OrderDetail = {
+  Id_order: number;
+  Order_code: string;
+  items: OrderDetailItem[];
+};
+
+const ORDERS_PER_PAGE = 5;
 
 const statusMap: Record<
   OrderItem["Status"],
@@ -63,11 +82,15 @@ const formatDate = (value: string) =>
 
 export default function AccountOrdersPage() {
   const { token, user, bootstrapped } = useAuth();
+  const router = useRouter();
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [reorderingId, setReorderingId] = useState<number | null>(null);
+  const [reorderSuccess, setReorderSuccess] = useState<number | null>(null);
 
   const loadOrders = async () => {
     if (!token) return;
@@ -80,6 +103,7 @@ export default function AccountOrdersPage() {
       const url = `/api/orders/me${query.toString() ? `?${query.toString()}` : ""}`;
       const response = await apiRequest<{ orders: OrderItem[] }>(url, { token });
       setOrders(response.orders || []);
+      setCurrentPage(1);
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -91,6 +115,88 @@ export default function AccountOrdersPage() {
     if (!token) return;
     loadOrders();
   }, [token, status]);
+
+  // Pagination logic
+  const totalPages = Math.max(1, Math.ceil(orders.length / ORDERS_PER_PAGE));
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * ORDERS_PER_PAGE;
+    return orders.slice(start, start + ORDERS_PER_PAGE);
+  }, [orders, currentPage]);
+
+  const goToPage = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+    // Scroll to top of order list
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pages: (number | "...")[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push("...");
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (currentPage < totalPages - 2) pages.push("...");
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
+  // Reorder handler
+  const handleReorder = async (orderId: number) => {
+    if (!token || reorderingId) return;
+    setReorderingId(orderId);
+    setReorderSuccess(null);
+    try {
+      const response = await apiRequest<{ order: OrderDetail }>(`/api/orders/me/${orderId}`, { token });
+      const items = response.order?.items || [];
+
+      if (items.length === 0) {
+        setError("Không tìm thấy sản phẩm trong đơn hàng này.");
+        return;
+      }
+
+      const key = getUserStorageKey("cart");
+      const cart = JSON.parse(localStorage.getItem(key) || "[]");
+
+      for (const item of items) {
+        const existingIndex = cart.findIndex(
+          (c: any) => c.Id_product === item.Id_product && c.Size === item.Size
+        );
+        if (existingIndex !== -1) {
+          cart[existingIndex].quantity += item.Quantity;
+        } else {
+          cart.push({
+            Id_product: item.Id_product,
+            Name_product: item.Name_product,
+            Thumbnail: item.Image_url,
+            Price: item.Price,
+            Size: item.Size,
+            quantity: item.Quantity,
+          });
+        }
+      }
+
+      localStorage.setItem(key, JSON.stringify(cart));
+      window.dispatchEvent(new Event("cart-updated"));
+      setReorderSuccess(orderId);
+
+      // Auto-clear success and redirect to cart after a moment
+      setTimeout(() => {
+        setReorderSuccess(null);
+        router.push("/cart");
+      }, 1500);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setReorderingId(null);
+    }
+  };
 
   const currentStatuses = useMemo(
     () => [
@@ -207,8 +313,10 @@ export default function AccountOrdersPage() {
                 </div>
               )}
 
-              {orders.map((order) => {
+              {paginatedOrders.map((order) => {
                 const statusInfo = statusMap[order.Status] || statusMap.pending;
+                const isReordering = reorderingId === order.Id_order;
+                const isReorderSuccess = reorderSuccess === order.Id_order;
                 return (
                   <div
                     key={order.Id_order}
@@ -265,6 +373,35 @@ export default function AccountOrdersPage() {
                           </span>
                         </div>
                         <div className="flex gap-3">
+                          {/* Reorder button */}
+                          <button
+                            type="button"
+                            onClick={() => handleReorder(order.Id_order)}
+                            disabled={isReordering || reorderingId !== null}
+                            className={
+                              "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition " +
+                              (isReorderSuccess
+                                ? "border border-emerald-300 bg-emerald-50 text-emerald-700"
+                                : "border border-[#003366] text-[#003366] hover:bg-[#003366] hover:text-white disabled:opacity-50")
+                            }
+                          >
+                            {isReordering ? (
+                              <>
+                                <i className="fa-solid fa-spinner fa-spin"></i>
+                                Đang thêm...
+                              </>
+                            ) : isReorderSuccess ? (
+                              <>
+                                <i className="fa-solid fa-check"></i>
+                                Đã thêm vào giỏ
+                              </>
+                            ) : (
+                              <>
+                                <i className="fa-solid fa-rotate-right"></i>
+                                Đặt lại
+                              </>
+                            )}
+                          </button>
                           <Link
                             className="inline-flex items-center justify-center rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 transition"
                             href={`/account/orders/${order.Id_order}`}
@@ -277,6 +414,69 @@ export default function AccountOrdersPage() {
                   </div>
                 );
               })}
+
+              {/* Pagination */}
+              {!loading && orders.length > ORDERS_PER_PAGE && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-100">
+                  <p className="text-sm text-gray-500">
+                    Hiển thị{" "}
+                    <span className="font-semibold text-gray-800">
+                      {(currentPage - 1) * ORDERS_PER_PAGE + 1}–{Math.min(currentPage * ORDERS_PER_PAGE, orders.length)}
+                    </span>{" "}
+                    trên <span className="font-semibold text-gray-800">{orders.length}</span> đơn hàng
+                  </p>
+
+                  <div className="flex items-center gap-1">
+                    {/* Previous button */}
+                    <button
+                      type="button"
+                      onClick={() => goToPage(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                      aria-label="Trang trước"
+                    >
+                      <i className="fa-solid fa-chevron-left text-xs"></i>
+                    </button>
+
+                    {/* Page numbers */}
+                    {getPageNumbers().map((page, index) =>
+                      page === "..." ? (
+                        <span
+                          key={`dots-${index}`}
+                          className="w-10 h-10 flex items-center justify-center text-gray-400 text-sm"
+                        >
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={page}
+                          type="button"
+                          onClick={() => goToPage(page as number)}
+                          className={
+                            "w-10 h-10 rounded-xl text-sm font-bold transition " +
+                            (currentPage === page
+                              ? "bg-[#003366] text-white shadow-sm"
+                              : "border border-gray-200 text-gray-700 hover:bg-gray-50")
+                          }
+                        >
+                          {page}
+                        </button>
+                      )
+                    )}
+
+                    {/* Next button */}
+                    <button
+                      type="button"
+                      onClick={() => goToPage(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                      aria-label="Trang sau"
+                    >
+                      <i className="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </AccountShell>

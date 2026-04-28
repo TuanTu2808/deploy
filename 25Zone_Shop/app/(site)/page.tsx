@@ -1,6 +1,8 @@
 "use client";
 import CartPopup from "@/app/components/CartPopup";
 import { useCart } from "@/app/hooks/useCart";
+import { useAuth } from "@/app/components/auth/AuthProvider";
+import { useRouter } from "next/navigation";
 import { useFavorites } from "@/app/hooks/useFavorites";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -38,41 +40,45 @@ function FlashSaleCard({ product }: { product: any }) {
   );
 
   return (
-    <div className="bg-white rounded-3xl p-4 shadow-lg text-center flex flex-col relative h-full w-full">
-      <span className="absolute top-3 right-3 z-10 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
-        -{discount}%
-      </span>
+    <Link href={`/products/${product.Id_product}`} className="block h-full w-full">
+      <div className="group bg-white rounded-3xl p-4 shadow-lg text-center flex flex-col relative h-full w-full transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl cursor-pointer">
+        <span className="absolute top-3 right-3 z-10 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+          -{discount}%
+        </span>
 
-      <div className="rounded-2xl overflow-hidden border-4 border-gray-100 mb-4 aspect-square">
-        <img
-          className="w-full h-full object-cover"
-          src={getImageUrl(product.Thumbnail)}
-          alt={product.Name_product}
-        />
+        <div className="rounded-2xl overflow-hidden border-4 border-gray-100 mb-4 aspect-square">
+          <img
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            src={getImageUrl(product.Thumbnail)}
+            alt={product.Name_product}
+          />
+        </div>
+
+        <h3 className="text-sm font-semibold text-[#003366] text-left line-clamp-2">
+          {product.Name_product}
+        </h3>
+
+        <div className="text-left mt-auto pt-2">
+          <p className="line-through text-gray-400 text-sm">
+            {product.Price?.toLocaleString()}đ
+          </p>
+          <p className="text-red-600 font-extrabold text-lg">
+            {product.Sale_Price?.toLocaleString()}đ
+          </p>
+        </div>
       </div>
-
-      <h3 className="text-sm font-semibold text-[#003366] text-left line-clamp-2">
-        {product.Name_product}
-      </h3>
-
-      <div className="text-left mt-auto pt-2">
-        <p className="line-through text-gray-400 text-sm">
-          {product.Price?.toLocaleString()}đ
-        </p>
-        <p className="text-red-600 font-extrabold text-lg">
-          {product.Sale_Price?.toLocaleString()}đ
-        </p>
-      </div>
-    </div>
+    </Link>
   );
 }
 
 function ProductCard({
   product,
   onAddToCart,
+  onBuyNow,
 }: {
   product: any;
   onAddToCart: (product: any) => void;
+  onBuyNow: (product: any) => void;
 }) {
   const { toggleFavorite, isFavorite } = useFavorites();
   const [liked, setLiked] = useState(false);
@@ -86,11 +92,11 @@ function ProductCard({
 
   return (
     <Link href={`/products/${product.Id_product}`} className="w-full h-full">
-      <div className="bg-white rounded-[32px] overflow-hidden shadow-2xl max-w-[320px] w-full h-full flex flex-col">
+      <div className="group bg-white rounded-[32px] overflow-hidden shadow-2xl max-w-[320px] w-full h-full flex flex-col transition-transform hover:-translate-y-1 cursor-pointer">
         <div className="relative w-full overflow-hidden aspect-square">
           <img
             alt={product.Name_product}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             src={getImageUrl(product.Thumbnail)}
           />
         </div>
@@ -123,7 +129,7 @@ function ProductCard({
             <button
               onClick={(e) => {
                 e.preventDefault();
-                onAddToCart(product);
+                onBuyNow(product);
               }}
               className="w-full mt-4 py-3 rounded-2xl bg-[#003366] text-white font-bold"
             >
@@ -178,6 +184,19 @@ export default function HomePage() {
   const [bestSeller, setBestSeller] = useState<any[]>([]);
   const [sapVuotToc, setSapVuotToc] = useState<any[]>([]);
   const { addToCart, showPopup, popupProduct } = useCart();
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const handleBuyNow = (product: any) => {
+    if (!user) {
+      // Save product so checkout page can merge it after login
+      localStorage.setItem("pending_buynow", JSON.stringify({ ...product, quantity: 1 }));
+      router.push("/login?returnTo=/checkout");
+    } else {
+      addToCart(product);
+      router.push("/checkout");
+    }
+  };
   const [dauGoi, setDauGoi] = useState<any[]>([]);
   const [timeLeft, setTimeLeft] = useState(7200);
 
@@ -319,7 +338,7 @@ export default function HomePage() {
           <div className="w-full lg:w-[40%] relative right-0 lg:right-20">
             <div className="rounded-3xl overflow-hidden relative">
               <img
-                className="w-90 w-full object-cover "
+                className="w-90 w-full object-cover scale-105"
                 src="/img/Rectangle%2024827.png"
                 alt=""
               />
@@ -401,6 +420,7 @@ export default function HomePage() {
                 key={p.Id_product}
                 product={p}
                 onAddToCart={(p) => addToCart(p)}
+                onBuyNow={handleBuyNow}
               />
             ))}
           </div>
@@ -444,6 +464,7 @@ export default function HomePage() {
                 key={p.Id_product}
                 product={p}
                 onAddToCart={addToCart}
+                onBuyNow={handleBuyNow}
               />
             ))}
           </div>
@@ -484,6 +505,7 @@ export default function HomePage() {
                 key={p.Id_product}
                 product={p}
                 onAddToCart={addToCart}
+                onBuyNow={handleBuyNow}
               />
             ))}
           </div>

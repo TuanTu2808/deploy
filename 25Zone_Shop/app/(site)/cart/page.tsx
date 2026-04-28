@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import CartPopup from "@/app/components/CartPopup";
 import AuthModal from "@/app/components/auth/AuthModal";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/components/auth/AuthProvider";
@@ -20,6 +21,8 @@ export default function CartPage() {
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [voucherModalOpen, setVoucherModalOpen] = useState(false);
   const [suggestedProducts, setSuggestedProducts] = useState<any[]>([]);
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupProduct, setPopupProduct] = useState<any>(null);
 
   useEffect(() => {
     const fetchVouchers = async () => {
@@ -120,6 +123,7 @@ export default function CartPage() {
     const newCart = cart.filter((item) => item.Name_product !== name);
     setCart(newCart);
     localStorage.setItem(getUserStorageKey("cart"), JSON.stringify(newCart));
+    window.dispatchEvent(new Event("cart-updated"));
   };
 
   const updateQty = (name: string, qty: number) => {
@@ -131,6 +135,7 @@ export default function CartPage() {
 
     setCart(newCart);
     localStorage.setItem(getUserStorageKey("cart"), JSON.stringify(newCart));
+    window.dispatchEvent(new Event("cart-updated"));
   };
 
   return (
@@ -431,11 +436,24 @@ export default function CartPage() {
                     type="button"
                     className="mt-auto w-full py-3 sm:py-4 rounded-2xl bg-[#003366] text-white font-extrabold tracking-wide hover:bg-[#00264d] active:scale-95 transition"
                     onClick={(e) => {
+                       e.preventDefault();
                        e.stopPropagation();
-                       router.push(`/products/${p.Id_product}`);
+                       const newCart = [...cart];
+                       const index = newCart.findIndex(item => item.Id_product === p.Id_product);
+                       if (index !== -1) {
+                         newCart[index].quantity += 1;
+                       } else {
+                         newCart.push({ ...p, quantity: 1 });
+                       }
+                       setCart(newCart);
+                       localStorage.setItem(getUserStorageKey("cart"), JSON.stringify(newCart));
+                       window.dispatchEvent(new Event("cart-updated"));
+                       setPopupProduct(p);
+                       setShowPopup(true);
+                       setTimeout(() => setShowPopup(false), 2500);
                     }}
                   >
-                    XEM CHI TIẾT
+                    THÊM VÀO GIỎ HÀNG
                   </button>
                 </div>
               </div>
@@ -532,6 +550,7 @@ export default function CartPage() {
           }
         }}
       />
+      {showPopup && popupProduct && <CartPopup product={popupProduct} />}
     </main>
   );
 }

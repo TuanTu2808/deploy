@@ -525,6 +525,28 @@ router.delete("/me/addresses/:id", requireAuth, async (req, res) => {
   }
 });
 
+router.get("/address/default", requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth.id;
+
+    const [rows] = await database.query(
+      `SELECT * FROM address_ship 
+       WHERE Id_user = ? AND Is_default = 1
+       LIMIT 1`,
+      [userId],
+    );
+
+    if (!rows.length) {
+      return res.json({ address: null });
+    }
+
+    res.json({ address: rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
+
 router.get("/exists", async (req, res) => {
   try {
     const phone = normalizePhone(req.query?.phone);

@@ -23,6 +23,7 @@ export function useCart() {
     }
 
     localStorage.setItem(key, JSON.stringify(cart));
+    window.dispatchEvent(new Event("cart-updated"));
 
     setPopupProduct(product);
     setShowPopup(true);

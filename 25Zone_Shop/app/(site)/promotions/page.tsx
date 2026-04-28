@@ -1,15 +1,17 @@
 "use client";
+import { useEffect, useMemo, useRef, useState } from "react";
 import CartPopup from "@/app/components/CartPopup";
 import { useCart } from "@/app/hooks/useCart";
 import Link from "next/link";
-import { useEffect } from "react";
-import { useMemo, useState } from "react";
 import {
   DEFAULT_MAX,
   DEFAULT_MIN,
   FilterPanel,
 } from "@/app/components/products/FilterPanel";
 import { Product } from "@/types/sanpham.type";
+import { useFavorites } from "@/app/hooks/useFavorites";
+import { useAuth } from "@/app/components/auth/AuthProvider";
+import { useRouter } from "next/navigation";
 
 const getImageUrl = (thumbnail: any) => {
   if (!thumbnail) return "/img/placeholder.png";
@@ -32,14 +34,14 @@ const getImageUrl = (thumbnail: any) => {
   return `http://localhost:5001${thumbnail}`;
 };
 
-import { useFavorites } from "@/app/hooks/useFavorites";
-
 function ProductCard({
   p,
   onAddToCart,
+  onBuyNow,
 }: {
   p: Product;
   onAddToCart: (product: Product) => void;
+  onBuyNow: (product: Product) => void;
 }) {
   const { toggleFavorite, isFavorite } = useFavorites();
   const [liked, setLiked] = useState(false);
@@ -51,89 +53,90 @@ function ProductCard({
     return () => window.removeEventListener("favorites-updated", handleUpdate);
   }, [p.Id_product]);
 
-  const discount =
-    p.Price && p.Sale_Price
+  const discountPct =
+    p.Price && p.Sale_Price && p.Sale_Price < p.Price
       ? Math.round(((p.Price - p.Sale_Price) / p.Price) * 100)
       : 0;
+
+  const displayPrice =
+    p.Sale_Price && p.Sale_Price < p.Price ? p.Sale_Price : p.Price;
+
   return (
-    <div
-      className="group rounded-2xl border border-gray-200 bg-white shadow-sm 
-        transition-all duration-300 ease-out 
-        hover:shadow-xl hover:scale-[1.02]
-        overflow-hidden"
-    >
-      <div className="relative overflow-hidden w-full h-[210px] bg-[#f8f9fb]">
-        {/* Background full */}
-        <img
-          src={getImageUrl(p.Thumbnail)}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover blur-md scale-110"
-        />
+    <Link href={`/products/${p.Id_product}`} className="block h-full w-full">
+      <div className="group bg-white rounded-[32px] overflow-hidden shadow-2xl w-full h-full flex flex-col transition-transform hover:-translate-y-1 cursor-pointer border border-gray-100 relative">
+        {/* Discount badge */}
+        {discountPct > 0 && (
+          <span className="absolute top-3 left-3 z-10 bg-red-500 text-white text-[11px] font-extrabold px-2 py-1 rounded-full shadow">
+            -{discountPct}%
+          </span>
+        )}
 
-        {/* Ảnh sản phẩm */}
-        <img
-          src={getImageUrl(p.Thumbnail)}
-          alt={p.Name_product}
-          className="relative w-full h-full object-contain p-4 transition-transform duration-500 ease-out group-hover:scale-105"
-        />
+        {/* Image */}
+        <div className="relative w-full overflow-hidden h-[220px]">
+          <img
+            src={getImageUrl(p.Thumbnail)}
+            alt={p.Name_product}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        </div>
 
-      </div>
+        {/* Content - luôn hiển thị, không cần hover */}
+        <div className="bg-white flex-1 flex flex-col p-4 sm:p-5">
+          <h3 className="font-extrabold text-[#003366] uppercase text-[16px] line-clamp-2">
+            {p.Name_product}
+          </h3>
 
-      <div className="p-5 flex flex-col flex-1 gap-2">
-        <h3 className="font-extrabold text-[#003366] uppercase text-[16px] line-clamp-2">
-          {p.Name_product}
-        </h3>
-        <p className="text-sm text-[#003366] font-semibold line-clamp-1">
-          {p.Category_Name || "Sản phẩm khuyến mãi"}
-        </p>
+          <p className="text-sm text-[#003366] font-semibold line-clamp-1 mt-1">
+            {p.Category_Name || "Sản phẩm khuyến mãi"}
+          </p>
 
-        <div className="w-12 h-1 bg-[#003366] rounded-full my-2"></div>
+          <div className="h-[3px] w-12 bg-[#003366] mt-2 mb-3"></div>
 
-        <div className="mt-auto pt-2">
-          <p className="text-xs font-semibold text-gray-400 mb-1">GIÁ KHUYẾN MÃI</p>
-          <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
-            <div>
-              <p className="text-[#8b1e1e] font-extrabold text-2xl tracking-tight">
-                {(p.Sale_Price ?? p.Price)?.toLocaleString()}đ
-              </p>
-              {p.Sale_Price && (
-                <p className="text-sm text-gray-400 line-through tabular-nums">
-                  {p.Price?.toLocaleString()}đ
+          <div className="mt-auto">
+            <p className="text-xs font-semibold text-gray-400 mb-1">GIÁ KHUYẾN MÃI</p>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-[#8b1e1e] font-extrabold text-2xl tracking-tight">
+                  {displayPrice?.toLocaleString()}đ
                 </p>
-              )}
+                {discountPct > 0 && (
+                  <p className="text-sm text-gray-400 line-through tabular-nums">
+                    {p.Price?.toLocaleString()}đ
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toggleFavorite(p);
+                }}
+                className="ml-auto w-10 h-10 flex-shrink-0 rounded-full bg-[#003366] text-white flex items-center justify-center hover:bg-[#002244] hover:scale-105 active:scale-95 transition-all shadow-md"
+              >
+                <i className={liked ? "fa-solid fa-heart" : "fa-regular fa-heart"}></i>
+              </button>
             </div>
 
-            <button 
-              type="button" 
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(p); }}
-              className="w-10 h-10 rounded-full bg-[#003366] flex items-center justify-center hover:bg-[#002244] hover:scale-105 active:scale-95 text-white transition-all shadow-md shrink-0"
-            >
-              <i className={liked ? "fa-solid fa-heart" : "fa-regular fa-heart"}></i>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
             <button
               onClick={(e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 onAddToCart(p);
               }}
-              className="w-full py-2 rounded-xl font-bold text-sm bg-[#003366] text-white hover:bg-[#00264d] transition disabled:opacity-50"
+              disabled={p.Quantity === 0}
+              className={`w-full py-2 rounded-xl font-bold text-sm transition ${
+                p.Quantity === 0
+                  ? "bg-gray-400 text-white cursor-not-allowed"
+                  : "bg-[#003366] text-white hover:bg-[#00264d]"
+              }`}
             >
-              THÊM VÀO GIỎ
+              {p.Quantity === 0 ? "HẾT HÀNG" : "THÊM SẢN PHẨM"}
             </button>
-            <Link
-              href={`/products/${p.Id_product}`}
-              className="w-full py-2 rounded-xl font-bold text-sm bg-gray-100 text-[#003366] hover:bg-gray-200 transition text-center flex items-center justify-center"
-            >
-              CHI TIẾT
-            </Link>
           </div>
         </div>
       </div>
-    </div>
-
-
+    </Link>
   );
 }
 
@@ -146,9 +149,21 @@ export default function PromotionsPage() {
   const [loading, setLoading] = useState(false);
 
   const { addToCart, showPopup, popupProduct } = useCart();
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const handleBuyNow = (product: Product) => {
+    if (!user) {
+      localStorage.setItem("pending_buynow", JSON.stringify({ ...product, quantity: 1 }));
+      router.push("/login?returnTo=/checkout");
+    } else {
+      addToCart(product);
+      router.push("/checkout");
+    }
+  };
 
   const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 9;
+  const productsPerPage = 8;
 
   const indexOfLast = currentPage * productsPerPage;
   const indexOfFirst = indexOfLast - productsPerPage;
@@ -179,7 +194,10 @@ export default function PromotionsPage() {
         }
 
         const data = await res.json();
-        setSaleProducts(Array.isArray(data) ? data : []);
+        const saleOnly = Array.isArray(data)
+          ? data.filter((p: any) => p.Sale_Price && p.Sale_Price < p.Price)
+          : [];
+        setSaleProducts(saleOnly);
         setCurrentPage(1);
       } catch (err) {
         console.error(err);
@@ -203,27 +221,25 @@ export default function PromotionsPage() {
     setPriceMin(DEFAULT_MIN);
     setPriceMax(DEFAULT_MAX);
   };
-  const handleApplyFilter = async () => {
+  const applyFilterWith = async (
+    cats: string[],
+    brands: string[],
+    pMin: string,
+    pMax: string
+  ) => {
     try {
       setLoading(true);
-
       const params = new URLSearchParams();
-
-      selectedCategories.forEach((c) => params.append("categories", c));
-
-      selectedBrands.forEach((b) => params.append("brands", b));
-
-      if (priceMin !== DEFAULT_MIN) params.append("priceMin", priceMin);
-
-      if (priceMax !== DEFAULT_MAX) params.append("priceMax", priceMax);
-
-      const res = await fetch(
-        `http://localhost:5001/api/sanpham/filter?${params.toString()}`,
-      );
-
+      cats.forEach((c) => params.append("categories", c));
+      brands.forEach((b) => params.append("brands", b));
+      if (pMin !== DEFAULT_MIN) params.append("priceMin", pMin);
+      if (pMax !== DEFAULT_MAX) params.append("priceMax", pMax);
+      const res = await fetch(`http://localhost:5001/api/sanpham/filter?${params.toString()}`);
       const data = await res.json();
-
-      setSaleProducts(data);
+      const saleOnly = Array.isArray(data)
+        ? data.filter((p: any) => p.Sale_Price && p.Sale_Price < p.Price)
+        : [];
+      setSaleProducts(saleOnly);
       setCurrentPage(1);
     } catch (err) {
       console.log(err);
@@ -231,6 +247,16 @@ export default function PromotionsPage() {
       setLoading(false);
     }
   };
+
+  // Auto-filter khi category/brand thay đổi
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    applyFilterWith(selectedCategories, selectedBrands, priceMin, priceMax);
+  }, [selectedCategories, selectedBrands]);
+
+  const handleApplyFilter = () =>
+    applyFilterWith(selectedCategories, selectedBrands, priceMin, priceMax);
   return (
     <main>
       {/* Breadcrumb */}
@@ -365,12 +391,13 @@ export default function PromotionsPage() {
             {loading ? (
               <div className="text-center py-20">Loading...</div>
             ) : (
-              <div className="mt-5 grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5">
+              <div className="mt-5 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                 {currentProducts.map((p) => (
                   <ProductCard
                     key={p.Id_product}
                     p={p}
                     onAddToCart={addToCart}
+                    onBuyNow={handleBuyNow}
                   />
                 ))}
               </div>

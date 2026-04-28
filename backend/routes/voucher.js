@@ -3,12 +3,79 @@ import database from "../database.js";
 
 const router = express.Router();
 
+// POST: Áp dụng voucher
+router.post("/apply", async (req, res) => {
+  try {
+    const { code, cart_total } = req.body;
+    
+    if (!code) {
+      return res.status(400).json({ message: "Vui lòng nhập mã voucher" });
+    }
+
+    const [rows] = await database.query(
+      `SELECT * FROM vouchers_product WHERE Voucher_Coder = ? AND Status = 1`,
+      [code]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Mã voucher không hợp lệ hoặc đã hết hạn" });
+    }
+
+    const voucher = rows[0];
+
+    // Check min order value
+    if (voucher.Min_order_value && cart_total < voucher.Min_order_value) {
+      return res.status(400).json({ message: `Đơn hàng tối thiểu phải từ ${voucher.Min_order_value.toLocaleString()}đ` });
+    }
+
+    // Check expiration
+    if (voucher.Start_date && new Date(voucher.Start_date) > new Date()) {
+      return res.status(400).json({ message: "Voucher chưa tới ngày sử dụng" });
+    }
+    
+    if (voucher.End_date && new Date(voucher.End_date) < new Date()) {
+      return res.status(400).json({ message: "Voucher đã hết hạn" });
+    }
+
+    // Calculate discount
+    let discountAmount = 0;
+    if (voucher.Discount_type === "fixed") {
+      discountAmount = voucher.Discount_value;
+    } else if (voucher.Discount_type === "percent") {
+      discountAmount = (cart_total * voucher.Discount_value) / 100;
+      if (voucher.Max_discount && discountAmount > voucher.Max_discount) {
+        discountAmount = voucher.Max_discount;
+      }
+    }
+
+    res.json({
+      message: "Áp dụng voucher thành công",
+      voucher: {
+        code: voucher.Voucher_Coder,
+        discount: discountAmount,
+      }
+    });
+
+  } catch (error) {
+    console.error("Lỗi áp dụng voucher:", error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
+
 // GET: Lấy tất cả voucher
 router.get("/", async (req, res) => {
   try {
-    const [rows] = await database.query(
-      `SELECT * FROM vouchers_product ORDER BY id_voucher DESC`
-    );
+    const { active } = req.query;
+    let queryArgs = [];
+    let queryStr = `SELECT * FROM vouchers_product`;
+    
+    if (active === 'true') {
+      queryStr += ` WHERE Status = 1 AND (Start_date IS NULL OR Start_date <= NOW()) AND (End_date IS NULL OR End_date >= NOW())`;
+    }
+    
+    queryStr += ` ORDER BY id_voucher DESC`;
+    
+    const [rows] = await database.query(queryStr, queryArgs);
     res.json(rows);
   } catch (error) {
     console.error("Lỗi GET vouchers:", error);
@@ -22,7 +89,7 @@ router.get("/:id", async (req, res) => {
     const { id } = req.params;
     const [rows] = await database.query(
       `SELECT * FROM vouchers_product WHERE id_voucher = ?`,
-      [id]
+      [id],
     );
 
     if (rows.length === 0) {
@@ -60,7 +127,7 @@ router.post("/", async (req, res) => {
     if (Voucher_Coder) {
       const [existing] = await database.query(
         `SELECT id_voucher FROM vouchers_product WHERE Voucher_Coder = ?`,
-        [Voucher_Coder]
+        [Voucher_Coder],
       );
       if (existing.length > 0) {
         return res.status(400).json({ message: "Mã voucher đã tồn tại" });
@@ -98,11 +165,10 @@ router.post("/", async (req, res) => {
         Max_discount,
         Start_date,
         End_date,
-      ]
+      ],
     );
 
     res.status(201).json({ id: result.insertId });
-
   } catch (error) {
     console.error("❌ Lỗi tạo voucher:", error); // 👈 QUAN TRỌNG
     res.status(500).json({ message: error.message });
@@ -121,7 +187,7 @@ router.patch("/:id/status", async (req, res) => {
 
     const [result] = await database.query(
       `UPDATE vouchers_product SET Status = ? WHERE id_voucher = ?`,
-      [Status, id]
+      [Status, id],
     );
 
     if (result.affectedRows === 0) {
@@ -156,7 +222,7 @@ router.put("/:id", async (req, res) => {
     if (Voucher_Coder) {
       const [existing] = await database.query(
         `SELECT id_voucher FROM vouchers_product WHERE Voucher_Coder = ? AND id_voucher != ?`,
-        [Voucher_Coder, id]
+        [Voucher_Coder, id],
       );
       if (existing.length > 0) {
         return res.status(400).json({ message: "Mã voucher đã tồn tại" });
@@ -185,12 +251,12 @@ router.put("/:id", async (req, res) => {
         Start_date,
         End_date,
         id,
-      ]
+      ],
     );
 
     const [updated] = await database.query(
       `SELECT * FROM vouchers_product WHERE id_voucher = ?`,
-      [id]
+      [id],
     );
 
     res.json(updated[0]);
@@ -204,10 +270,9 @@ router.put("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    await database.query(
-      `DELETE FROM vouchers_product WHERE id_voucher = ?`,
-      [id]
-    );
+    await database.query(`DELETE FROM vouchers_product WHERE id_voucher = ?`, [
+      id,
+    ]);
     res.json({ message: "Xóa thành công" });
   } catch (error) {
     console.error("Lỗi xóa voucher:", error);

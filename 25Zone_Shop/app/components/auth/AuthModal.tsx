@@ -1,4 +1,4 @@
-﻿﻿﻿"use client";
+﻿"use client";
 
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { usePresence } from "./usePresence";
@@ -214,9 +214,13 @@ export default function AuthModal({
 
   const afterAuthSuccess = (response: AuthResponse, remember = true) => {
     signIn(resolveTokens(response), response.user, remember);
-    setSuccess(response.message || "Thành công.");
-    afterAuthSuccess;
-    onClose();
+    if (onLoginSuccess) {
+      onLoginSuccess(); // set success ref BEFORE onClose fires router.back()
+      onClose();
+    } else {
+      setSuccess(response.message || "Thành công.");
+      onClose();
+    }
   };
 
   const validateLoginForm = () => {

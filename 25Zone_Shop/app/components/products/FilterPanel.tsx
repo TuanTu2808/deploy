@@ -2,6 +2,19 @@
 
 import { useEffect, useState } from "react";
 
+export const DEFAULT_MIN = "50.000";
+export const DEFAULT_MAX = "1.000.000";
+
+interface Category {
+    id: number;
+    name: string;
+}
+
+interface Brand {
+    id: number;
+    name: string;
+}
+
 type FilterPanelProps = {
     selectedCategories: string[];
     setSelectedCategories: (next: string[]) => void;
@@ -20,19 +33,6 @@ type FilterPanelProps = {
     onClear?: () => void;
 };
 
-export const DEFAULT_MIN = "50.000";
-export const DEFAULT_MAX = "1.000.000";
-
-interface Category {
-    id: number;
-    name: string;
-}
-
-interface Brand {
-    id: number;
-    name: string;
-}
-
 export function FilterPanel({
     selectedCategories,
     setSelectedCategories,
@@ -44,14 +44,12 @@ export function FilterPanel({
     setPriceMax,
     onReset,
     onApply,
-    onClear,
 }: FilterPanelProps) {
     const [categories, setCategories] = useState<Category[]>([]);
     const [brands, setBrands] = useState<Brand[]>([]);
     const [loadingCategories, setLoadingCategories] = useState(true);
     const [loadingBrands, setLoadingBrands] = useState(true);
 
-    // Fetch categories
     useEffect(() => {
         const fetchCategories = async () => {
             try {
@@ -65,11 +63,9 @@ export function FilterPanel({
                 setLoadingCategories(false);
             }
         };
-
         fetchCategories();
     }, []);
 
-    // Fetch brands
     useEffect(() => {
         const fetchBrands = async () => {
             try {
@@ -83,7 +79,6 @@ export function FilterPanel({
                 setLoadingBrands(false);
             }
         };
-
         fetchBrands();
     }, []);
 
@@ -91,8 +86,15 @@ export function FilterPanel({
     const brandCount = selectedBrands.length;
     const priceChanged = priceMin !== DEFAULT_MIN || priceMax !== DEFAULT_MAX;
 
-    const toggle = (list: string[], value: string) => {
-        return list.includes(value) ? list.filter((x) => x !== value) : [...list, value];
+    const toggle = (list: string[], value: string) =>
+        list.includes(value) ? list.filter((x) => x !== value) : [...list, value];
+
+    const handleCategoryChange = (name: string) => {
+        setSelectedCategories(toggle(selectedCategories, name));
+    };
+
+    const handleBrandChange = (name: string) => {
+        setSelectedBrands(toggle(selectedBrands, name));
     };
 
     return (
@@ -103,17 +105,16 @@ export function FilterPanel({
                         <i className="fa-solid fa-sliders text-[#33B1FA]"></i>
                         Bộ lọc sản phẩm
                     </h3>
-
                     <button
                         className="text-sm font-bold text-gray-500 hover:text-[#003366] transition flex items-center gap-2"
                         type="button"
-                        onClick={onReset}
+                        onClick={() => { onReset?.(); }}
                     >
                         <i className="fa-solid fa-rotate-left"></i>
                         Reset
                     </button>
                 </div>
-                <p className="mt-2 text-sm text-gray-500">Bấm vào từng mục để chọn.</p>
+                <p className="mt-2 text-sm text-gray-500">Chọn để lọc ngay lập tức.</p>
             </div>
 
             <div className="p-6 space-y-4">
@@ -131,7 +132,6 @@ export function FilterPanel({
                             <i className="fa-solid fa-chevron-down text-gray-400 transition group-open:rotate-180"></i>
                         </div>
                     </summary>
-
                     <div className="px-4 pb-4 pt-2 space-y-2">
                         {loadingCategories ? (
                             <p className="text-sm text-gray-500 py-3">Đang tải...</p>
@@ -145,9 +145,7 @@ export function FilterPanel({
                                         className="w-4 h-4 accent-[#003366]"
                                         type="checkbox"
                                         checked={selectedCategories.includes(category.name)}
-                                        onChange={() =>
-                                            setSelectedCategories(toggle(selectedCategories, category.name))
-                                        }
+                                        onChange={() => handleCategoryChange(category.name)}
                                     />
                                     <span className="text-sm font-semibold text-gray-800">{category.name}</span>
                                 </label>
@@ -172,7 +170,6 @@ export function FilterPanel({
                             <i className="fa-solid fa-chevron-down text-gray-400 transition group-open:rotate-180"></i>
                         </div>
                     </summary>
-
                     <div className="px-4 pb-4 pt-2 space-y-2">
                         {loadingBrands ? (
                             <p className="text-sm text-gray-500 py-3">Đang tải...</p>
@@ -186,7 +183,7 @@ export function FilterPanel({
                                         className="w-4 h-4 accent-[#003366]"
                                         type="checkbox"
                                         checked={selectedBrands.includes(brand.name)}
-                                        onChange={() => setSelectedBrands(toggle(selectedBrands, brand.name))}
+                                        onChange={() => handleBrandChange(brand.name)}
                                     />
                                     <span className="text-sm font-semibold text-gray-800">{brand.name}</span>
                                 </label>
@@ -211,56 +208,31 @@ export function FilterPanel({
                             <i className="fa-solid fa-chevron-down text-gray-400 transition group-open:rotate-180"></i>
                         </div>
                     </summary>
-
                     <div className="px-4 pb-4 pt-2">
-                        <input className="w-full accent-[#003366]" type="range" />
-                        <div className="grid grid-cols-2 gap-3 mt-3">
+                        <div className="grid grid-cols-2 gap-3 mt-1">
                             <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
-                                    Min
-                                </span>
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">Min</span>
                                 <input
                                     className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#003366]/20"
                                     type="text"
                                     value={priceMin}
                                     onChange={(e) => setPriceMin(e.target.value)}
+                                    onBlur={() => onApply?.()}
                                 />
                             </div>
-
                             <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
-                                    Max
-                                </span>
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">Max</span>
                                 <input
                                     className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#003366]/20"
                                     type="text"
                                     value={priceMax}
                                     onChange={(e) => setPriceMax(e.target.value)}
+                                    onBlur={() => onApply?.()}
                                 />
                             </div>
                         </div>
                     </div>
                 </details>
-            </div>
-
-            <div className="p-6 pt-0">
-                <button
-                    className="w-full bg-[#003366] hover:bg-[#002244] text-white py-3 rounded-xl font-extrabold transition flex items-center justify-center gap-2"
-                    type="button"
-                    onClick={onApply}
-                >
-                    <i className="fa-solid fa-filter"></i>
-                    LỌC NGAY
-                </button>
-
-                <button
-                    className="w-full mt-3 border border-gray-200 hover:bg-gray-50 text-[#003366] py-3 rounded-xl font-extrabold transition flex items-center justify-center gap-2"
-                    type="button"
-                    onClick={onClear}
-                >
-                    <i className="fa-solid fa-xmark"></i>
-                    XÓA BỘ LỌC
-                </button>
             </div>
         </div>
     );

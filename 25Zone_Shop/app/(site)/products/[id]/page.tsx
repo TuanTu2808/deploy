@@ -13,6 +13,7 @@ interface Product {
   Name_product: string;
   Description: string;
   Price: number;
+  Sale_Price?: number;
   Category_Name: string;
   Thumbnail?: string;
   Quantity?: number;
@@ -29,7 +30,7 @@ interface Comment {
   user_name?: string;
 }
 
-function RelatedProductCard({ p }: { p: any }) {
+function RelatedProductCard({ p, onAddToCart }: { p: any; onAddToCart: (product: any) => void }) {
   const router = useRouter();
   const thumbnail = (() => {
     if (!p.Thumbnail) return "/img/placeholder.png";
@@ -42,7 +43,7 @@ function RelatedProductCard({ p }: { p: any }) {
   })();
 
   return (
-    <div 
+    <div
       className="group bg-white rounded-[34px] shadow-2xl overflow-hidden flex flex-col cursor-pointer transition-transform hover:-translate-y-1"
       onClick={() => router.push(`/products/${p.Id_product}`)}
     >
@@ -84,12 +85,12 @@ function RelatedProductCard({ p }: { p: any }) {
           className="mt-auto w-full py-3 sm:py-4 rounded-2xl bg-[#003366] text-white font-extrabold tracking-wide hover:bg-[#00264d] active:scale-95 transition"
           type="button"
           onClick={(e) => {
-             e.stopPropagation();
-             // addToCart logic or push to product
-             router.push(`/products/${p.Id_product}`);
+            e.preventDefault();
+            e.stopPropagation();
+            onAddToCart(p);
           }}
         >
-          XEM CHI TIẾT
+          THÊM VÀO GIỎ HÀNG
         </button>
       </div>
     </div>
@@ -112,7 +113,9 @@ export default function ProductDetailPage() {
   const [popupProduct, setPopupProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const [reviewError, setReviewError] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -180,6 +183,32 @@ export default function ProductDetailPage() {
       </div>
     );
   }
+
+  const handleAddRelatedToCart = (relatedProduct: any) => {
+    const key = getUserStorageKey("cart");
+    const cart: any[] = JSON.parse(localStorage.getItem(key) || "[]");
+
+    const index = cart.findIndex(
+      (item) => item.Id_product === relatedProduct.Id_product,
+    );
+
+    if (index !== -1) {
+      cart[index].quantity += 1;
+    } else {
+      cart.push({ ...relatedProduct, quantity: 1 });
+    }
+
+    localStorage.setItem(key, JSON.stringify(cart));
+    window.dispatchEvent(new Event("cart-updated"));
+
+    setPopupProduct(relatedProduct);
+    setShowPopup(true);
+
+    setTimeout(() => {
+      setShowPopup(false);
+    }, 2500);
+  };
+
   const addToCart = (product: Product) => {
     const key = getUserStorageKey("cart");
     const cart: any[] = JSON.parse(localStorage.getItem(key) || "[]");
@@ -195,6 +224,7 @@ export default function ProductDetailPage() {
     }
 
     localStorage.setItem(key, JSON.stringify(cart));
+    window.dispatchEvent(new Event("cart-updated"));
   };
 
   const handleAddToCart = () => {
@@ -243,21 +273,7 @@ export default function ProductDetailPage() {
               />
             </div>
 
-            <div className="flex gap-4 mt-4">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  className="border border-gray-200 rounded-xl p-2 bg-white hover:border-[#33B1FA] transition"
-                >
-                  <img
-                    src="/img/Rectangle%2058.png"
-                    className="w-20 h-20 object-contain"
-                    alt="thumb"
-                  />
-                </button>
-              ))}
-            </div>
+
           </div>
 
           <div className="lg:col-span-5">
@@ -278,9 +294,25 @@ export default function ProductDetailPage() {
               <span className="text-sm text-gray-500">(7 đánh giá)</span>
             </div>
 
-            <p className="text-3xl font-extrabold text-red-600 mt-6">
-              {product.Price.toLocaleString()} VND
-            </p>
+            {product.Sale_Price && product.Sale_Price < product.Price ? (
+              <div className="mt-6">
+                <div className="flex items-center gap-3">
+                  <p className="text-3xl font-extrabold text-red-600">
+                    {product.Sale_Price.toLocaleString()} VND
+                  </p>
+                  <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                    -{Math.round(((product.Price - product.Sale_Price) / product.Price) * 100)}%
+                  </span>
+                </div>
+                <p className="text-lg text-gray-400 line-through mt-1">
+                  {product.Price.toLocaleString()} VND
+                </p>
+              </div>
+            ) : (
+              <p className="text-3xl font-extrabold text-red-600 mt-6">
+                {product.Price.toLocaleString()} VND
+              </p>
+            )}
 
             <div className="mt-6 grid grid-cols-2 gap-4">
               <div className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
@@ -304,12 +336,7 @@ export default function ProductDetailPage() {
             <div className="flex items-center gap-4 mt-6">
               <span className="font-semibold text-gray-900">Số lượng</span>
               <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-white">
-                <button
-                  type="button"
-                  className="w-11 h-11 flex items-center justify-center text-xl hover:bg-gray-50 transition"
-                >
-                  -
-                </button>
+
                 <button
                   type="button"
                   className="w-11 h-11 flex items-center justify-center text-xl hover:bg-gray-50 transition"
@@ -329,12 +356,7 @@ export default function ProductDetailPage() {
                 >
                   +
                 </button>
-                <button
-                  type="button"
-                  className="w-11 h-11 flex items-center justify-center text-xl hover:bg-gray-50 transition"
-                >
-                  +
-                </button>
+
               </div>
             </div>
 
@@ -344,11 +366,10 @@ export default function ProductDetailPage() {
                 onClick={handleAddToCart}
                 disabled={!product.Quantity || product.Quantity === 0}
                 className={`flex items-center justify-center gap-2 px-6 py-3 font-extrabold rounded-xl transition
-  ${
-    !product.Quantity || product.Quantity === 0
-      ? "bg-gray-400 text-white cursor-not-allowed"
-      : "bg-[#003366] text-white hover:bg-[#002244]"
-  }
+  ${!product.Quantity || product.Quantity === 0
+                    ? "bg-gray-400 text-white cursor-not-allowed"
+                    : "bg-[#003366] text-white hover:bg-[#002244]"
+                  }
   `}
               >
                 <i className="fa-solid fa-cart-shopping" />
@@ -357,7 +378,15 @@ export default function ProductDetailPage() {
 
               <button
                 type="button"
-                onClick={handleAddToCart}
+                onClick={() => {
+                  if (!user) {
+                    localStorage.setItem("pending_buynow", JSON.stringify({ ...product, quantity }));
+                    router.push("/login?returnTo=/checkout");
+                  } else {
+                    addToCart(product);
+                    router.push("/checkout");
+                  }
+                }}
                 className="flex items-center justify-center gap-2 px-6 py-3 bg-[#003366] text-white font-extrabold rounded-xl hover:bg-[#002244] transition"
               >
                 MUA NGAY
@@ -485,24 +514,23 @@ export default function ProductDetailPage() {
               <div className="text-6xl font-extrabold text-yellow-400 mb-3">
                 {comments.length > 0
                   ? (
-                      comments.reduce((sum, c) => sum + c.rating, 0) /
-                      comments.length
-                    ).toFixed(1)
+                    comments.reduce((sum, c) => sum + c.rating, 0) /
+                    comments.length
+                  ).toFixed(1)
                   : "0"}
               </div>
               <div className="flex justify-center gap-0.5 mb-2">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <i
                     key={i}
-                    className={`fa-${
-                      i <
+                    className={`fa-${i <
                       Math.round(
                         comments.reduce((sum, c) => sum + c.rating, 0) /
-                          comments.length || 0,
+                        comments.length || 0,
                       )
-                        ? "solid"
-                        : "regular"
-                    } fa-star text-yellow-400 text-2xl`}
+                      ? "solid"
+                      : "regular"
+                      } fa-star text-yellow-400 text-2xl`}
                   />
                 ))}
               </div>
@@ -638,62 +666,82 @@ export default function ProductDetailPage() {
                   <i
                     key={i}
                     onClick={() => setNewRating(i + 1)}
-                    className={`cursor-pointer fa-star text-2xl ${
-                      i < newRating
-                        ? "fa-solid text-yellow-400"
-                        : "fa-regular text-gray-300"
-                    }`}
+                    className={`cursor-pointer fa-star text-2xl ${i < newRating
+                      ? "fa-solid text-yellow-400"
+                      : "fa-regular text-gray-300"
+                      }`}
                   />
                 ))}
               </div>
             </div>
             <textarea
-              className="w-full border border-gray-300 rounded p-2 mb-4 h-24"
+              className="w-full border border-gray-300 rounded p-2 mb-3 h-24"
               value={newContent}
-              onChange={(e) => setNewContent(e.target.value)}
+              onChange={(e) => { setNewContent(e.target.value); setReviewError(""); }}
               placeholder="Viết nhận xét của bạn..."
             />
+            {reviewError && (
+              <p className="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {reviewError}
+              </p>
+            )}
             <button
+              disabled={reviewSubmitting}
               onClick={async () => {
-                if (!newContent) return;
+                setReviewError("");
+                if (!newContent.trim()) {
+                  setReviewError("Vui lòng nhập nội dung đánh giá.");
+                  return;
+                }
                 if (!user) {
                   router.push(
-                    `/login?returnTo=${encodeURIComponent(`/products/${id}`)}`,
+                    `/login?returnTo=${encodeURIComponent(`/products/${id}`)}`
                   );
                   return;
                 }
 
                 try {
-                  const token = loadToken();
-                  await fetch("http://localhost:5001/api/product-comments", {
+                  setReviewSubmitting(true);
+                  const authToken = token || loadToken();
+                  const postRes = await fetch("http://localhost:5001/api/product-comments", {
                     method: "POST",
                     headers: {
                       "Content-Type": "application/json",
-                      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
                     },
                     body: JSON.stringify({
                       productId: id,
                       userId: user.Id_user,
-                      content: newContent,
+                      content: newContent.trim(),
                       rating: newRating,
                     }),
                   });
 
-                  const res = await fetch(
+                  if (!postRes.ok) {
+                    const errData = await postRes.json().catch(() => ({}));
+                    setReviewError(errData?.error || "Gửi đánh giá thất bại. Vui lòng thử lại.");
+                    return;
+                  }
+
+                  const getRes = await fetch(
                     `http://localhost:5001/api/product-comments/${id}`,
                   );
-                  const data = await res.json();
+                  const data = await getRes.json();
                   setComments(data);
                   setShowReview(false);
                   setNewContent("");
                   setNewRating(5);
+                  setReviewError("");
                 } catch (e) {
                   console.error(e);
+                  setReviewError("Có lỗi xảy ra. Vui lòng thử lại.");
+                } finally {
+                  setReviewSubmitting(false);
                 }
               }}
-              className="w-full py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 transition"
+              className="w-full py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Gửi đánh giá
+              {reviewSubmitting ? "Đang gửi..." : "Gửi đánh giá"}
             </button>
           </div>
         </div>
@@ -708,7 +756,7 @@ export default function ProductDetailPage() {
         {/* Mobile: 2 cột cho đẹp / Desktop: 4 cột đúng layout gốc */}
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-10">
           {relatedProducts.map((p) => (
-            <RelatedProductCard key={p.Id_product} p={p} />
+            <RelatedProductCard key={p.Id_product} p={p} onAddToCart={handleAddRelatedToCart} />
           ))}
         </div>
       </section>
