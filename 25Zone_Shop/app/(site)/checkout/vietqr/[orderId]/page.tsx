@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/app/components/auth/AuthProvider";
+import Toast from "@/app/components/Toast";
 
 export default function VietQRPaymentPage() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function VietQRPaymentPage() {
   const [timeLeft, setTimeLeft] = useState(600); // 10 phút
   const [showCancelPopup, setShowCancelPopup] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
-  const [cancelSuccessToast, setCancelSuccessToast] = useState(false);
+  const [toast, setToast] = useState<{message: string, type: "success" | "error" | "warning"} | null>(null);
   const [paymentSuccessPopup, setPaymentSuccessPopup] = useState(false);
 
   const transferContent = `DH${params.orderId}`;
@@ -29,7 +30,7 @@ export default function VietQRPaymentPage() {
 
   useEffect(() => {
     if (timeLeft <= 0) {
-      alert("Thời gian thanh toán đã hết, giao dịch sẽ bị hủy!");
+      setToast({ message: "Thời gian thanh toán đã hết, giao dịch sẽ bị hủy!", type: "warning" });
       fetch(`http://localhost:5001/api/orders/${params.orderId}/status`, {
         method: "PUT",
         headers: {
@@ -38,7 +39,9 @@ export default function VietQRPaymentPage() {
         },
         body: JSON.stringify({ status: "cancelled" }),
       }).then(() => {
-        router.push("/");
+        setTimeout(() => {
+          router.push("/");
+        }, 2000);
       }).catch(console.error);
       return;
     }
@@ -78,17 +81,17 @@ export default function VietQRPaymentPage() {
 
       if (res.ok) {
         setShowCancelPopup(false);
-        setCancelSuccessToast(true);
+        setToast({ message: "Giao dịch đã được hủy", type: "success" });
         setTimeout(() => {
           router.push("/");
         }, 2000);
       } else {
-        alert("Có lỗi xảy ra khi hủy giao dịch.");
+        setToast({ message: "Có lỗi xảy ra khi hủy giao dịch.", type: "error" });
         setShowCancelPopup(false);
       }
     } catch (error) {
       console.error(error);
-      alert("Có lỗi xảy ra khi hủy giao dịch.");
+      setToast({ message: "Có lỗi xảy ra khi hủy giao dịch.", type: "error" });
       setShowCancelPopup(false);
     } finally {
       setCancelLoading(false);
@@ -202,20 +205,12 @@ export default function VietQRPaymentPage() {
         </div>
       )}
 
-      {/* Cancel Success Toast */}
-      {cancelSuccessToast && (
-        <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[10000] flex items-center justify-center p-4 pointer-events-none">
-          <div className="pointer-events-auto bg-[#FEF2F2] border border-[#EF4444] rounded-xl shadow-lg px-6 py-4 flex items-center gap-4 min-w-[320px] max-w-[400px]">
-            <div className="flex-shrink-0">
-              <i className="fa-regular fa-circle-xmark text-[#EF4444] text-2xl"></i>
-            </div>
-            <div className="flex-grow">
-              <p className="text-[#EF4444] font-bold text-[16px]">
-                Giao dịch đã được hủy
-              </p>
-            </div>
-          </div>
-        </div>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
 
       {/* Payment Success Popup */}

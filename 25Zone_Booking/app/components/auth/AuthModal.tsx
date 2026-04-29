@@ -14,6 +14,7 @@ type AuthModalProps = {
   mode: AuthMode;
   onClose: () => void;
   onModeChange: (next: AuthMode) => void;
+  onLoginSuccess?: () => void;
   logoSrc?: string;
 };
 
@@ -29,6 +30,7 @@ type RegisterFieldErrors = {
   email?: string;
   phone?: string;
   password?: string;
+  confirmPassword?: string;
 };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -97,6 +99,7 @@ export default function AuthModal({
   mode,
   onClose,
   onModeChange,
+  onLoginSuccess,
   logoSrc = "/image 2.png",
 }: AuthModalProps) {
   const { mounted, visible } = usePresence(open, 220);
@@ -114,7 +117,9 @@ export default function AuthModal({
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPhone, setRegisterPhone] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
+  const [registerConfirmPassword, setRegisterConfirmPassword] = useState("");
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showRegisterConfirmPassword, setShowRegisterConfirmPassword] = useState(false);
   const [registerErrors, setRegisterErrors] = useState<RegisterFieldErrors>({});
 
   const [forgotOpen, setForgotOpen] = useState(false);
@@ -130,7 +135,7 @@ export default function AuthModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [authSuccessAnim, setAuthSuccessAnim] = useState(false);
+
 
   useEffect(() => {
     if (!open) return;
@@ -162,7 +167,6 @@ export default function AuthModal({
     if (!open) return;
     setError("");
     setSuccess("");
-    setAuthSuccessAnim(false);
     setLoginErrors({});
     setRegisterErrors({});
   }, [open, mode, forgotOpen, forgotStep]);
@@ -181,6 +185,7 @@ export default function AuthModal({
     setRememberLogin(true);
     setShowLoginPassword(false);
     setShowRegisterPassword(false);
+    setShowRegisterConfirmPassword(false);
     setShowForgotNewPassword(false);
     setShowForgotConfirmPassword(false);
     setLoginErrors({});
@@ -209,20 +214,23 @@ export default function AuthModal({
 
   const afterAuthSuccess = (response: AuthResponse, remember = true) => {
     signIn(resolveTokens(response), response.user, remember);
-    setAuthSuccessAnim(true);
 
-    setTimeout(() => {
-      // 🔥 LẤY redirect từ URL
-      const params = new URLSearchParams(window.location.search);
-      const redirect = params.get("redirect");
+    // 🔥 LẤY redirect từ URL
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get("redirect");
 
-      if (redirect) {
-        window.location.href = redirect;
-        return;
-      }
+    if (redirect) {
+      window.location.href = redirect;
+      return;
+    }
 
+    if (onLoginSuccess) {
+      onLoginSuccess();
       onClose();
-    }, 2000);
+    } else {
+      setSuccess(response.message || "Thành công.");
+      onClose();
+    }
   };
 
   const validateLoginForm = () => {
@@ -272,6 +280,12 @@ export default function AuthModal({
       nextErrors.password = "Vui lòng nhập mật khẩu.";
     } else if (registerPassword.length < 6) {
       nextErrors.password = "Mật khẩu phải có ít nhất 6 ký tự.";
+    }
+
+    if (!registerConfirmPassword.trim()) {
+      nextErrors.confirmPassword = "Vui lòng xác nhận mật khẩu.";
+    } else if (registerConfirmPassword !== registerPassword) {
+      nextErrors.confirmPassword = "Mật khẩu xác nhận không khớp.";
     }
 
     setRegisterErrors(nextErrors);
@@ -488,15 +502,7 @@ export default function AuthModal({
             <i className="fa-solid fa-xmark text-[18px]" />
           </button>
 
-          {authSuccessAnim ? (
-            <div className="col-span-1 md:col-span-2 flex flex-col items-center justify-center h-full min-h-[400px] animate-in fade-in zoom-in duration-300">
-              <div className="w-24 h-24 mb-6 rounded-full bg-emerald-100 flex items-center justify-center">
-                <i className="fa-solid fa-check text-5xl text-emerald-500 animate-[bounce_1s_ease-in-out]"></i>
-              </div>
-              <h2 className="text-2xl font-bold text-[#0F172A] mb-2">Đăng nhập thành công!</h2>
-              <p className="text-slate-500">Đang chuyển hướng...</p>
-            </div>
-          ) : mode === "login" ? (
+          {mode === "login" ? (
             <>
               <div className="hidden md:flex">
                 <AccentPanel
@@ -818,6 +824,32 @@ export default function AuthModal({
                           className={
                             "fa-regular text-[16px] " +
                             (showRegisterPassword ? "fa-eye-slash" : "fa-eye")
+                          }
+                        />
+                      </button>
+                    }
+                  />
+                  <TextInput
+                    type={showRegisterConfirmPassword ? "text" : "password"}
+                    placeholder="Xác nhận mật khẩu"
+                    value={registerConfirmPassword}
+                    onChange={(value) => {
+                      setRegisterConfirmPassword(value);
+                      setRegisterErrors((prev) => ({ ...prev, confirmPassword: "" }));
+                    }}
+                    autoComplete="new-password"
+                    error={registerErrors.confirmPassword}
+                    right={
+                      <button
+                        type="button"
+                        onClick={() => setShowRegisterConfirmPassword((prev) => !prev)}
+                        aria-label={showRegisterConfirmPassword ? "Ẩn mật khẩu xác nhận" : "Hiện mật khẩu xác nhận"}
+                        className="hover:text-accent-blue transition"
+                      >
+                        <i
+                          className={
+                            "fa-regular text-[16px] " +
+                            (showRegisterConfirmPassword ? "fa-eye-slash" : "fa-eye")
                           }
                         />
                       </button>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/components/auth/AuthProvider";
 import type { CartItem } from "@/types/cart.type";
 import { getUserStorageKey } from "@/lib/user-storage";
+import Toast from "@/app/components/Toast";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -14,6 +15,7 @@ export default function CheckoutPage() {
   const [discount, setDiscount] = useState(0);
   const [payment, setPayment] = useState(1);
   const [address, setAddress] = useState<any>(null);
+  const [toast, setToast] = useState<{message: string, type: "success" | "error" | "warning"} | null>(null);
   useEffect(() => {
     const fetchAddress = async () => {
       try {
@@ -87,13 +89,13 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async () => {
     try {
       if (!token) {
-        alert("Bạn chưa đăng nhập!");
+        setToast({ message: "Bạn chưa đăng nhập!", type: "error" });
         return;
       }
 
       // ❗ Kiểm tra địa chỉ
       if (!address) {
-        alert("Bạn chưa có địa chỉ giao hàng!");
+        setToast({ message: "Bạn chưa có địa chỉ giao hàng!", type: "error" });
         return;
       }
 
@@ -142,7 +144,7 @@ export default function CheckoutPage() {
       }
     } catch (err) {
       console.error("LỖI ĐẶT HÀNG:", err);
-      alert("Đặt hàng thất bại!");
+      setToast({ message: "Đặt hàng thất bại!", type: "error" });
     }
   };
 
@@ -369,6 +371,13 @@ export default function CheckoutPage() {
         </div>
       </main>
 
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </>
   );
 }

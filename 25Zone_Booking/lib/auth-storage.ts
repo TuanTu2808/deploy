@@ -8,62 +8,34 @@ export const AUTH_CHANGED_EVENT = "25zone-auth-changed";
 // Legacy key để tương thích dữ liệu cũ chỉ có 1 token
 const LEGACY_TOKEN_KEY = "25zone_auth_token";
 
-type StorageKind = "local" | "session";
-
 export type AuthTokens = {
   accessToken: string;
   refreshToken: string;
 };
 
-const getStorage = (kind: StorageKind): Storage | null => {
+const writeCookie = (key: string, value: string, persistent: boolean) => {
+  if (typeof window === "undefined") return;
+  const maxAge = persistent ? "max-age=31536000;" : "";
+  document.cookie = `${key}=${encodeURIComponent(value)}; path=/; ${maxAge} SameSite=Lax`;
+};
+
+const readCookie = (key: string): string | null => {
   if (typeof window === "undefined") return null;
-  return kind === "local" ? window.localStorage : window.sessionStorage;
+  const match = document.cookie.match(new RegExp('(^| )' + key + '=([^;]+)'));
+  if (match) {
+    return decodeURIComponent(match[2]);
+  }
+  return null;
 };
 
-const read = (kind: StorageKind, key: string) => {
-  return getStorage(kind)?.getItem(key) ?? null;
-};
-
-const write = (kind: StorageKind, key: string, value: string) => {
-  getStorage(kind)?.setItem(key, value);
-};
-
-const remove = (kind: StorageKind, key: string) => {
-  getStorage(kind)?.removeItem(key);
+const removeCookie = (key: string) => {
+  if (typeof window === "undefined") return;
+  document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
 };
 
 const notifyAuthChanged = () => {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT));
-};
-
-const hasAuthData = (kind: StorageKind) => {
-  const access = read(kind, ACCESS_TOKEN_KEY) || read(kind, LEGACY_TOKEN_KEY);
-  const user = read(kind, USER_KEY);
-  return Boolean(access && user);
-};
-
-const detectAuthStorage = (): StorageKind | null => {
-  if (hasAuthData("local")) return "local";
-  if (hasAuthData("session")) return "session";
-
-  if (
-    read("local", ACCESS_TOKEN_KEY) ||
-    read("local", LEGACY_TOKEN_KEY) ||
-    read("local", USER_KEY)
-  ) {
-    return "local";
-  }
-
-  if (
-    read("session", ACCESS_TOKEN_KEY) ||
-    read("session", LEGACY_TOKEN_KEY) ||
-    read("session", USER_KEY)
-  ) {
-    return "session";
-  }
-
-  return null;
 };
 
 const parseUser = (raw: string | null): AuthUser | null => {
@@ -75,38 +47,37 @@ const parseUser = (raw: string | null): AuthUser | null => {
   }
 };
 
-export const getCurrentAuthStorageKind = () => detectAuthStorage();
-
 export const loadToken = () => {
   if (typeof window === "undefined") return null;
-  const storage = detectAuthStorage();
-  if (!storage) return null;
-  return read(storage, ACCESS_TOKEN_KEY) || read(storage, LEGACY_TOKEN_KEY);
+  return readCookie(ACCESS_TOKEN_KEY) || readCookie(LEGACY_TOKEN_KEY) || window.localStorage.getItem(ACCESS_TOKEN_KEY) || window.sessionStorage.getItem(ACCESS_TOKEN_KEY);
 };
 
 export const loadRefreshToken = () => {
   if (typeof window === "undefined") return null;
-  const storage = detectAuthStorage();
-  if (!storage) return null;
-  return read(storage, REFRESH_TOKEN_KEY);
+  return readCookie(REFRESH_TOKEN_KEY) || window.localStorage.getItem(REFRESH_TOKEN_KEY) || window.sessionStorage.getItem(REFRESH_TOKEN_KEY);
 };
 
 export const loadUser = (): AuthUser | null => {
   if (typeof window === "undefined") return null;
-  const storage = detectAuthStorage();
-  if (!storage) return null;
-  return parseUser(read(storage, USER_KEY));
+  return parseUser(readCookie(USER_KEY)) || parseUser(window.localStorage.getItem(USER_KEY)) || parseUser(window.sessionStorage.getItem(USER_KEY));
 };
 
 const clearAllAuthKeys = () => {
-  remove("local", ACCESS_TOKEN_KEY);
-  remove("local", REFRESH_TOKEN_KEY);
-  remove("local", LEGACY_TOKEN_KEY);
-  remove("local", USER_KEY);
-  remove("session", ACCESS_TOKEN_KEY);
-  remove("session", REFRESH_TOKEN_KEY);
-  remove("session", LEGACY_TOKEN_KEY);
-  remove("session", USER_KEY);
+  removeCookie(ACCESS_TOKEN_KEY);
+  removeCookie(REFRESH_TOKEN_KEY);
+  removeCookie(LEGACY_TOKEN_KEY);
+  removeCookie(USER_KEY);
+  
+  if (typeof window !== "undefined") {
+    window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+    window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+    window.localStorage.removeItem(LEGACY_TOKEN_KEY);
+    window.localStorage.removeItem(USER_KEY);
+    window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+    window.sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+    window.sessionStorage.removeItem(LEGACY_TOKEN_KEY);
+    window.sessionStorage.removeItem(USER_KEY);
+  }
 };
 
 export const saveAuth = (
@@ -115,18 +86,23 @@ export const saveAuth = (
   persistent = true
 ) => {
   if (typeof window === "undefined") return;
-  const target: StorageKind = persistent ? "local" : "session";
 
   clearAllAuthKeys();
-  write(target, ACCESS_TOKEN_KEY, tokens.accessToken);
-  write(target, REFRESH_TOKEN_KEY, tokens.refreshToken);
-  write(target, USER_KEY, JSON.stringify(user));
+  writeCookie(ACCESS_TOKEN_KEY, tokens.accessToken, persistent);
+  writeCookie(REFRESH_TOKEN_KEY, tokens.refreshToken, persistent);
+  writeCookie(USER_KEY, JSON.stringify(user), persistent);
+  
+  const target = persistent ? window.localStorage : window.sessionStorage;
+  target.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
+  target.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
+  target.setItem(USER_KEY, JSON.stringify(user));
+
   notifyAuthChanged();
 };
 
 export const saveAuthUsingCurrentStorage = (tokens: AuthTokens, user: AuthUser) => {
-  const storage = detectAuthStorage() ?? "local";
-  saveAuth(tokens, user, storage === "local");
+  // Mặc định cho persistent vì refresh token thường yêu cầu như vậy
+  saveAuth(tokens, user, true);
 };
 
 export const clearAuth = () => {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import AuthModal from "@/app/components/auth/AuthModal";
+import { LoginSuccessPopup } from "@/app/components/auth/LoginSuccessPopup";
 
 type AuthMode = "login" | "register";
 
@@ -20,6 +21,7 @@ export default function AuthModalGate() {
   const desiredMode = getAuthMode(authParam);
 
   const [mode, setMode] = useState<AuthMode>("login");
+  const [showLoginSuccess, setShowLoginSuccess] = useState(false);
   const open = desiredMode !== null;
 
   useEffect(() => {
@@ -37,15 +39,19 @@ export default function AuthModalGate() {
   };
 
   return (
-    <AuthModal
-      open={open}
-      mode={mode}
-      logoSrc="/image 2.png"
-      onClose={() => updateUrl(null)}
-      onModeChange={(next) => {
-        setMode(next);
-        updateUrl(next);
-      }}
-    />
+    <>
+      <AuthModal
+        open={open}
+        mode={mode}
+        logoSrc="/image 2.png"
+        onClose={() => updateUrl(null)}
+        onModeChange={(next) => {
+          setMode(next);
+          updateUrl(next);
+        }}
+        onLoginSuccess={() => setShowLoginSuccess(true)}
+      />
+      {showLoginSuccess && <LoginSuccessPopup returnTo="RELOAD" />}
+    </>
   );
 }

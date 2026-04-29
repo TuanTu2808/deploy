@@ -9,6 +9,7 @@ import {
   clearStoredBookingFlowSelection,
 } from "@/lib/booking-flow-selection";
 import { useAuth } from "../auth/AuthProvider";
+import Toast from "@/app/components/Toast";
 
 const apiBase =
   process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ||
@@ -54,6 +55,7 @@ export default function VoucherSection({
   const [vouchers, setVouchers] = useState<any[]>([]);
   const [selectedVoucher, setSelectedVoucher] = useState<any>(null);
   const [showAllVouchers, setShowAllVouchers] = useState(false);
+  const [toast, setToast] = useState<{message: string, type: "success" | "error" | "warning"} | null>(null);
 
   const selectedItemsScrollRef = useRef<HTMLDivElement>(null);
   const [cartScrollState, setCartScrollState] = useState<'top' | 'bottom'>('top');
@@ -185,7 +187,7 @@ export default function VoucherSection({
 
       router.push(url);
     } catch (err: any) {
-      alert(err.message);
+      setToast({ message: err.message || "Có lỗi xảy ra khi xác nhận", type: "error" });
     } finally {
       setConfirming(false);
     }
@@ -528,6 +530,14 @@ export default function VoucherSection({
           </button>
         </div>
       </section>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </>
   );
 }

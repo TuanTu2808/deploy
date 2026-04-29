@@ -272,7 +272,7 @@ router.get("/me/:bookingId", requireAuth, async (req, res) => {
 
 router.get("/", async (req, res) => {
   try {
-    const { status, storeId } = req.query;
+    const { status, storeId, stylistId, date } = req.query;
     let query = `
       SELECT
         b.Id_booking AS id,
@@ -305,7 +305,19 @@ router.get("/", async (req, res) => {
       params.push(Number(storeId));
     }
 
-    query += " ORDER BY b.Start_time DESC";
+    if (stylistId) {
+      query += params.length ? " AND" : " WHERE";
+      query += " b.Id_stylist = ?";
+      params.push(Number(stylistId));
+    }
+
+    if (date) {
+      query += params.length ? " AND" : " WHERE";
+      query += " b.Booking_date = ?";
+      params.push(String(date));
+    }
+
+    query += " ORDER BY b.Start_time ASC";
 
     const [rows] = await database.query(query, params);
 

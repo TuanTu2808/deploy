@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { usePresence } from "./usePresence";
@@ -30,6 +30,7 @@ type RegisterFieldErrors = {
   email?: string;
   phone?: string;
   password?: string;
+  confirmPassword?: string;
 };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -118,7 +119,9 @@ export default function AuthModal({
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPhone, setRegisterPhone] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
+  const [registerConfirmPassword, setRegisterConfirmPassword] = useState("");
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showRegisterConfirmPassword, setShowRegisterConfirmPassword] = useState(false);
   const [registerErrors, setRegisterErrors] = useState<RegisterFieldErrors>({});
 
   const [forgotOpen, setForgotOpen] = useState(false);
@@ -184,6 +187,7 @@ export default function AuthModal({
     setRememberLogin(true);
     setShowLoginPassword(false);
     setShowRegisterPassword(false);
+    setShowRegisterConfirmPassword(false);
     setShowForgotNewPassword(false);
     setShowForgotConfirmPassword(false);
     setLoginErrors({});
@@ -270,6 +274,12 @@ export default function AuthModal({
       nextErrors.password = "Vui lòng nhập mật khẩu.";
     } else if (registerPassword.length < 6) {
       nextErrors.password = "Mật khẩu phải có ít nhất 6 ký tự.";
+    }
+
+    if (!registerConfirmPassword.trim()) {
+      nextErrors.confirmPassword = "Vui lòng xác nhận mật khẩu.";
+    } else if (registerConfirmPassword !== registerPassword) {
+      nextErrors.confirmPassword = "Mật khẩu xác nhận không khớp.";
     }
 
     setRegisterErrors(nextErrors);
@@ -839,6 +849,32 @@ export default function AuthModal({
                           className={
                             "fa-regular text-[16px] " +
                             (showRegisterPassword ? "fa-eye-slash" : "fa-eye")
+                          }
+                        />
+                      </button>
+                    }
+                  />
+                  <TextInput
+                    type={showRegisterConfirmPassword ? "text" : "password"}
+                    placeholder="Xác nhận mật khẩu"
+                    value={registerConfirmPassword}
+                    onChange={(value) => {
+                      setRegisterConfirmPassword(value);
+                      setRegisterErrors((prev) => ({ ...prev, confirmPassword: "" }));
+                    }}
+                    autoComplete="new-password"
+                    error={registerErrors.confirmPassword}
+                    right={
+                      <button
+                        type="button"
+                        onClick={() => setShowRegisterConfirmPassword((prev) => !prev)}
+                        aria-label={showRegisterConfirmPassword ? "Ẩn mật khẩu xác nhận" : "Hiện mật khẩu xác nhận"}
+                        className="hover:text-accent-blue transition"
+                      >
+                        <i
+                          className={
+                            "fa-regular text-[16px] " +
+                            (showRegisterConfirmPassword ? "fa-eye-slash" : "fa-eye")
                           }
                         />
                       </button>

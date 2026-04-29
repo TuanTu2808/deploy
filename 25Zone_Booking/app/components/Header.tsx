@@ -1,10 +1,11 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/app/components/auth/AuthProvider";
 import { toAbsoluteImageUrl } from "@/lib/api";
+import { LogoutSuccessToast } from "@/app/components/auth/LogoutSuccessToast";
 
 type NavItem = { label: string; href: string };
 type AuthMode = "login" | "register";
@@ -59,6 +60,7 @@ export default function Header() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [showLogoutSuccess, setShowLogoutSuccess] = useState(false);
   const closeAccountMenuTimerRef = useRef<number | null>(null);
   const { user, signOut, bootstrapped } = useAuth();
 
@@ -116,7 +118,7 @@ export default function Header() {
     signOut();
     setDrawerOpen(false);
     setAccountMenuOpen(false);
-    router.push("/");
+    setShowLogoutSuccess(true);
   };
 
   const openAccountMenu = () => {
@@ -145,6 +147,7 @@ export default function Header() {
     "absolute bottom-0.5 left-0 h-[3px] bg-[#33B1FA] transition-all duration-300";
 
   return (
+    <>
     <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white font-sans shadow-sm">
       <div className="mx-auto flex h-[85px] max-w-[1920px] items-center justify-between px-4 sm:px-6">
         <div className="flex items-center">
@@ -384,5 +387,14 @@ export default function Header() {
         </aside>
       </div>
     </header>
+    {showLogoutSuccess && (
+      <LogoutSuccessToast
+        onDone={() => {
+          setShowLogoutSuccess(false);
+          router.push("/");
+        }}
+      />
+    )}
+    </>
   );
 }

@@ -13,6 +13,7 @@ import { useFavorites } from "@/app/hooks/useFavorites";
 import { useCart } from "@/app/hooks/useCart";
 import { getUserStorageKey } from "@/lib/user-storage";
 import { LoginSuccessPopup } from "@/app/components/auth/LoginSuccessPopup";
+import { LogoutSuccessToast } from "@/app/components/auth/LogoutSuccessToast";
 
 const nav = [
   { href: "/", label: "Trang chủ" },
@@ -30,6 +31,7 @@ export default function Header() {
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [showLoginSuccess, setShowLoginSuccess] = useState(false);
+  const [showLogoutSuccess, setShowLogoutSuccess] = useState(false);
 
   const pathname = usePathname();
   const router = useRouter();
@@ -60,14 +62,7 @@ export default function Header() {
     setDrawerOpen(false);
     setSearchOpen(false);
     setAuthOpen(false);
-
-    const currentPath = window.location.pathname;
-    const isProtected = PROTECTED_ROUTES.some((r) => currentPath.startsWith(r));
-    if (isProtected) {
-      router.push("/login");
-    } else {
-      router.push("/");
-    }
+    setShowLogoutSuccess(true);
   };
 
   useEffect(() => {
@@ -671,6 +666,20 @@ export default function Header() {
       />
 
       {showLoginSuccess && <LoginSuccessPopup returnTo="RELOAD" />}
+      {showLogoutSuccess && (
+        <LogoutSuccessToast
+          onDone={() => {
+            setShowLogoutSuccess(false);
+            const currentPath = window.location.pathname;
+            const isProtected = PROTECTED_ROUTES.some((r) => currentPath.startsWith(r));
+            if (isProtected) {
+              router.push("/login");
+            } else {
+              router.push("/");
+            }
+          }}
+        />
+      )}
     </header>
   );
 }

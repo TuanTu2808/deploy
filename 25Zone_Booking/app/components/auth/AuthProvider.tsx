@@ -179,11 +179,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener(AUTH_CHANGED_EVENT, handleChanged as EventListener);
     window.addEventListener("storage", handleChanged);
 
+    // Poll cookie for cross-port (cross-app) sync
+    const getCookieToken = () => {
+      const match = document.cookie.match(new RegExp('(^| )25zone_auth_access_token=([^;]+)'));
+      return match ? decodeURIComponent(match[2]) : null;
+    };
+    
+    let lastToken = getCookieToken();
+    const intervalId = setInterval(() => {
+      const currentToken = getCookieToken();
+      if (currentToken !== lastToken) {
+        lastToken = currentToken;
+        if (!currentToken) {
+           // Token is gone -> user logged out from another app
+           signOut();
+        } else {
+           // Token changed -> user logged in from another app
+           handleChanged();
+        }
+      }
+    }, 1000);
+
     return () => {
       window.removeEventListener(AUTH_CHANGED_EVENT, handleChanged as EventListener);
       window.removeEventListener("storage", handleChanged);
+      clearInterval(intervalId);
     };
-  }, [syncStateFromStorage]);
+  }, [syncStateFromStorage, signOut]);
 
   // Refresh profile near access-token expiry. If refresh-token is invalid/expired,
   // refreshProfile will fail and trigger signOut automatically.

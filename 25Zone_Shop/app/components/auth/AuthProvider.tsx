@@ -10,6 +10,7 @@ import React, {
 } from "react";
 import { apiRequest } from "@/lib/api";
 import {
+  AUTH_CHANGED_EVENT,
   clearAuth,
   loadRefreshToken,
   loadToken,
@@ -68,6 +69,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setRefreshToken(null);
     setUserState(null);
     clearAuth();
+  }, []);
+
+  const syncStateFromStorage = useCallback(() => {
+    const storedAccessToken = loadToken();
+    const storedRefreshToken = loadRefreshToken();
+    const storedUser = loadUser();
+
+    if (!storedAccessToken || !storedRefreshToken || !storedUser) {
+      setToken(null);
+      setRefreshToken(null);
+      setUserState(null);
+      return;
+    }
+
+    setToken(storedAccessToken);
+    setRefreshToken(storedRefreshToken);
+    setUserState(storedUser);
   }, []);
 
   const signIn = useCallback(
@@ -144,6 +162,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUserState(storedUser);
     refreshProfile().finally(() => setBootstrapped(true));
   }, [refreshProfile, signOut]);
+
+  // Auto sync auth state if token/user is changed by apiRequest or another tab.
+  useEffect(() => {
+    const handleChanged = () => {
+      syncStateFromStorage();
+    };
+
+    window.addEventListener(AUTH_CHANGED_EVENT, handleChanged as EventListener);
+    window.addEventListener("storage", handleChanged);
+
+    // Poll cookie for cross-port (cross-app) sync
+    const getCookieToken = () => {
+      const match = document.cookie.match(new RegExp('(^| )25zone_auth_access_token=([^;]+)'));
+      return match ? decodeURIComponent(match[2]) : null;
+    };
+
+    let lastToken = getCookieToken();
+    const intervalId = setInterval(() => {
+      const currentToken = getCookieToken();
+      if (currentToken !== lastToken) {
+        lastToken = currentToken;
+        if (!currentToken) {
+           // Token is gone -> user logged out from another app
+           signOut();
+        } else {
+           // Token changed -> user logged in from another app
+           handleChanged();
+        }
+      }
+    }, 1000);
+
+    return () => {
+      window.removeEventListener(AUTH_CHANGED_EVENT, handleChanged as EventListener);
+      window.removeEventListener("storage", handleChanged);
+      clearInterval(intervalId);
+    };
+  }, [syncStateFromStorage, signOut]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

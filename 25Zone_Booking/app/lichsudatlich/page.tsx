@@ -7,6 +7,7 @@ import { useAuth } from "@/app/components/auth/AuthProvider";
 import { apiRequest, errorMessage } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { buildBookingFlowHref, writeStoredBookingFlowSelection } from "@/lib/booking-flow-selection";
+import Toast from "@/app/components/Toast";
 
 type BookingStatus = "pending" | "confirmed" | "processing" | "completed" | "cancelled";
 
@@ -65,6 +66,7 @@ export default function BookingHistoryPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [toast, setToast] = useState<{message: string, type: "success" | "error" | "warning"} | null>(null);
 
   const router = useRouter();
   const [rebookingId, setRebookingId] = useState<number | null>(null);
@@ -180,7 +182,7 @@ export default function BookingHistoryPage() {
 
     } catch (err) {
       console.error("Rebook error:", err);
-      alert("Lỗi khi đặt lại lịch. Vui lòng thử lại.");
+      setToast({ message: "Lỗi khi đặt lại lịch. Vui lòng thử lại.", type: "error" });
     } finally {
       setRebookingId(null);
     }
@@ -455,6 +457,14 @@ export default function BookingHistoryPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
     </main>
   );
