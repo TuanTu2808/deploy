@@ -229,7 +229,7 @@ export default function CheckoutPage() {
                           <i className="fa-solid fa-qrcode"></i>
                         </span>
                         <span className="font-medium text-gray-900">
-                          Thanh toán chuyển khoản (VietQR)
+                          Thanh toán chuyển khoản (Bank)
                         </span>
                       </div>
                     </div>

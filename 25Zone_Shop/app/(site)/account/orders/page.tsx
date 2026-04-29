@@ -374,34 +374,36 @@ export default function AccountOrdersPage() {
                         </div>
                         <div className="flex gap-3">
                           {/* Reorder button */}
-                          <button
-                            type="button"
-                            onClick={() => handleReorder(order.Id_order)}
-                            disabled={isReordering || reorderingId !== null}
-                            className={
-                              "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition " +
-                              (isReorderSuccess
-                                ? "border border-emerald-300 bg-emerald-50 text-emerald-700"
-                                : "border border-[#003366] text-[#003366] hover:bg-[#003366] hover:text-white disabled:opacity-50")
-                            }
-                          >
-                            {isReordering ? (
-                              <>
-                                <i className="fa-solid fa-spinner fa-spin"></i>
-                                Đang thêm...
-                              </>
-                            ) : isReorderSuccess ? (
-                              <>
-                                <i className="fa-solid fa-check"></i>
-                                Đã thêm vào giỏ
-                              </>
-                            ) : (
-                              <>
-                                <i className="fa-solid fa-rotate-right"></i>
-                                Đặt lại
-                              </>
-                            )}
-                          </button>
+                          {order.Status === "completed" && (
+                            <button
+                              type="button"
+                              onClick={() => handleReorder(order.Id_order)}
+                              disabled={isReordering || reorderingId !== null}
+                              className={
+                                "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition " +
+                                (isReorderSuccess
+                                  ? "border border-emerald-300 bg-emerald-50 text-emerald-700"
+                                  : "border border-[#003366] text-[#003366] hover:bg-[#003366] hover:text-white disabled:opacity-50")
+                              }
+                            >
+                              {isReordering ? (
+                                <>
+                                  <i className="fa-solid fa-spinner fa-spin"></i>
+                                  Đang thêm...
+                                </>
+                              ) : isReorderSuccess ? (
+                                <>
+                                  <i className="fa-solid fa-check"></i>
+                                  Đã thêm vào giỏ
+                                </>
+                              ) : (
+                                <>
+                                  <i className="fa-solid fa-rotate-right"></i>
+                                  Đặt lại
+                                </>
+                              )}
+                            </button>
+                          )}
                           <Link
                             className="inline-flex items-center justify-center rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 transition"
                             href={`/account/orders/${order.Id_order}`}

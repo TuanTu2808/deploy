@@ -27,7 +27,7 @@ export default function CartPage() {
   useEffect(() => {
     const fetchVouchers = async () => {
       try {
-        const res = await fetch("http://localhost:5001/api/vouchers?active=true");
+        const res = await fetch("http://localhost:5001/api/voucher?active=true");
 
         if (!res.ok) throw new Error("Không lấy được voucher");
 
@@ -67,7 +67,7 @@ export default function CartPage() {
   }, []);
   const applyVoucher = async (code: string) => {
     try {
-      const res = await fetch("http://localhost:5001/api/vouchers/apply", {
+      const res = await fetch("http://localhost:5001/api/voucher/apply", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

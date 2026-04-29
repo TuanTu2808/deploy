@@ -63,7 +63,7 @@ function ProductCard({
 
   return (
     <Link href={`/products/${p.Id_product}`} className="block h-full w-full">
-      <div className="group bg-white rounded-[32px] overflow-hidden shadow-2xl w-full h-full flex flex-col transition-transform hover:-translate-y-1 cursor-pointer border border-gray-100 relative">
+      <div className="group bg-white rounded-[24px] sm:rounded-[32px] overflow-hidden shadow-xl sm:shadow-2xl w-full h-full flex flex-col transition-transform hover:-translate-y-1 cursor-pointer border border-gray-100 relative">
         {/* Discount badge */}
         {discountPct > 0 && (
           <span className="absolute top-3 left-3 z-10 bg-red-500 text-white text-[11px] font-extrabold px-2 py-1 rounded-full shadow">
@@ -72,7 +72,7 @@ function ProductCard({
         )}
 
         {/* Image */}
-        <div className="relative w-full overflow-hidden h-[220px]">
+        <div className="relative w-full overflow-hidden h-[180px] sm:h-[220px]">
           <img
             src={getImageUrl(p.Thumbnail)}
             alt={p.Name_product}
@@ -81,26 +81,26 @@ function ProductCard({
         </div>
 
         {/* Content - luôn hiển thị, không cần hover */}
-        <div className="bg-white flex-1 flex flex-col p-4 sm:p-5">
-          <h3 className="font-extrabold text-[#003366] uppercase text-[16px] line-clamp-2">
+        <div className="bg-white flex-1 flex flex-col p-3 sm:p-5">
+          <h3 className="font-extrabold text-[#003366] uppercase text-sm sm:text-[16px] line-clamp-2 leading-snug min-h-[42px] sm:min-h-[48px]">
             {p.Name_product}
           </h3>
 
-          <p className="text-sm text-[#003366] font-semibold line-clamp-1 mt-1">
+          <p className="text-xs sm:text-sm text-[#003366] font-semibold line-clamp-1 mt-1">
             {p.Category_Name || "Sản phẩm khuyến mãi"}
           </p>
 
-          <div className="h-[3px] w-12 bg-[#003366] mt-2 mb-3"></div>
+          <div className="h-[2px] sm:h-[3px] w-8 sm:w-12 bg-[#003366] mt-2 mb-2 sm:mb-3"></div>
 
           <div className="mt-auto">
-            <p className="text-xs font-semibold text-gray-400 mb-1">GIÁ KHUYẾN MÃI</p>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-[#8b1e1e] font-extrabold text-2xl tracking-tight">
+            <p className="text-[10px] sm:text-xs font-semibold text-gray-400 mb-1">GIÁ KHUYẾN MÃI</p>
+            <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
+              <div className="flex-1">
+                <p className="text-[#8b1e1e] font-extrabold text-base sm:text-xl lg:text-2xl tracking-tight leading-none break-words">
                   {displayPrice?.toLocaleString()}đ
                 </p>
                 {discountPct > 0 && (
-                  <p className="text-sm text-gray-400 line-through tabular-nums">
+                  <p className="text-[10px] sm:text-sm text-gray-400 line-through tabular-nums mt-0.5 sm:mt-1 break-words">
                     {p.Price?.toLocaleString()}đ
                   </p>
                 )}
@@ -112,9 +112,9 @@ function ProductCard({
                   e.stopPropagation();
                   toggleFavorite(p);
                 }}
-                className="ml-auto w-10 h-10 flex-shrink-0 rounded-full bg-[#003366] text-white flex items-center justify-center hover:bg-[#002244] hover:scale-105 active:scale-95 transition-all shadow-md"
+                className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 rounded-full bg-[#003366] text-white flex items-center justify-center hover:bg-[#002244] hover:scale-105 active:scale-95 transition-all shadow-md ml-auto"
               >
-                <i className={liked ? "fa-solid fa-heart" : "fa-regular fa-heart"}></i>
+                <i className={`${liked ? "fa-solid fa-heart" : "fa-regular fa-heart"} text-xs sm:text-sm`}></i>
               </button>
             </div>
 
@@ -125,7 +125,7 @@ function ProductCard({
                 onAddToCart(p);
               }}
               disabled={p.Quantity === 0}
-              className={`w-full py-2 rounded-xl font-bold text-sm transition ${
+              className={`w-full py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-[11px] sm:text-sm transition ${
                 p.Quantity === 0
                   ? "bg-gray-400 text-white cursor-not-allowed"
                   : "bg-[#003366] text-white hover:bg-[#00264d]"
@@ -195,7 +195,7 @@ export default function PromotionsPage() {
 
         const data = await res.json();
         const saleOnly = Array.isArray(data)
-          ? data.filter((p: any) => p.Sale_Price && p.Sale_Price < p.Price)
+          ? data.filter((p: any) => p.Sale_Price && p.Sale_Price < p.Price && p.Quantity && p.Quantity > 0)
           : [];
         setSaleProducts(saleOnly);
         setCurrentPage(1);
@@ -237,7 +237,7 @@ export default function PromotionsPage() {
       const res = await fetch(`http://localhost:5001/api/sanpham/filter?${params.toString()}`);
       const data = await res.json();
       const saleOnly = Array.isArray(data)
-        ? data.filter((p: any) => p.Sale_Price && p.Sale_Price < p.Price)
+        ? data.filter((p: any) => p.Sale_Price && p.Sale_Price < p.Price && p.Quantity && p.Quantity > 0)
         : [];
       setSaleProducts(saleOnly);
       setCurrentPage(1);

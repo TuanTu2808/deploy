@@ -3,7 +3,6 @@
 import { useRouter, useSearchParams, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/app/components/auth/AuthProvider";
-import Link from "next/link";
 
 export default function VietQRPaymentPage() {
   const router = useRouter();
@@ -11,8 +10,16 @@ export default function VietQRPaymentPage() {
   const params = useParams();
   const amount = searchParams.get("amount") || "0";
   const { bootstrapped, user, token } = useAuth();
-  
+
   const [timeLeft, setTimeLeft] = useState(600); // 10 phút
+  const [showCancelPopup, setShowCancelPopup] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelSuccessToast, setCancelSuccessToast] = useState(false);
+  const [paymentSuccessPopup, setPaymentSuccessPopup] = useState(false);
+
+  const transferContent = `DH${params.orderId}`;
+  const bankAccount = "0969919191";
+  const qrUrl = `https://img.vietqr.io/image/mbbank-${bankAccount}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(transferContent)}&accountName=25Zone%20Shop`;
 
   useEffect(() => {
     if (bootstrapped && !user) {
@@ -50,14 +57,15 @@ export default function VietQRPaymentPage() {
   };
 
   const handlePaymentSuccess = () => {
-    // Giả lập thanh toán thành công
-    alert("Thanh toán thành công! Đang chuyển hướng...");
-    router.push(`/checkout/success/${params.orderId}`);
+    // Hiển thị popup thanh toán thành công
+    setPaymentSuccessPopup(true);
+    setTimeout(() => {
+      router.push(`/checkout/success/${params.orderId}`);
+    }, 2000);
   };
 
-  const handleCancel = async () => {
-    if (!confirm("Bạn có chắc chắn muốn hủy giao dịch này không?")) return;
-
+  const confirmCancel = async () => {
+    setCancelLoading(true);
     try {
       const res = await fetch(`http://localhost:5001/api/orders/${params.orderId}/status`, {
         method: "PUT",
@@ -69,80 +77,162 @@ export default function VietQRPaymentPage() {
       });
 
       if (res.ok) {
-        alert("Giao dịch đã được hủy!");
-        router.push("/");
+        setShowCancelPopup(false);
+        setCancelSuccessToast(true);
+        setTimeout(() => {
+          router.push("/");
+        }, 2000);
       } else {
         alert("Có lỗi xảy ra khi hủy giao dịch.");
+        setShowCancelPopup(false);
       }
     } catch (error) {
       console.error(error);
       alert("Có lỗi xảy ra khi hủy giao dịch.");
+      setShowCancelPopup(false);
+    } finally {
+      setCancelLoading(false);
     }
+  };
+
+
+
+  const handleDownloadQR = () => {
+    const link = document.createElement("a");
+    link.href = qrUrl;
+    link.download = `QR_Thanh_Toan_DH${params.orderId}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (!bootstrapped || !user) return null;
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl overflow-hidden">
+    <div className="min-h-screen bg-[#eef7fb] flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8 relative">
+      <div className="w-full max-w-[500px] bg-white rounded-[32px] shadow-2xl overflow-hidden border border-[#003366]/10">
         {/* Header */}
-        <div className="bg-[#003366] px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-white font-bold text-xl">
-            <i className="fa-solid fa-qrcode text-2xl"></i>
-            VietQR
+        <div className="bg-[#003366] px-6 py-6 flex flex-col items-center gap-3 text-center">
+          <div className="flex flex-col items-center gap-2 text-white font-bold text-xl sm:text-2xl">
+            <i className="fa-solid fa-qrcode text-3xl mb-1"></i>
+            Thanh toán VietQR
           </div>
-          <div className="text-white text-right">
-            <p className="text-sm opacity-80">Thời gian giao dịch</p>
-            <p className="text-xl font-bold font-mono">{formatTime(timeLeft)}</p>
+          <div className="text-white mt-1">
+            <p className="text-sm opacity-80 uppercase tracking-wider text-[11px]">Thời gian giao dịch</p>
+            <p className="text-3xl font-bold font-mono tracking-wider text-white">{formatTime(timeLeft)}</p>
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-8 flex flex-col items-center text-center space-y-6">
-          <h2 className="text-2xl font-bold text-gray-900">
-            Thanh toán qua mã VietQR
-          </h2>
-          <p className="text-gray-600 text-sm">
-            Mở ứng dụng ngân hàng hoặc ví điện tử (MoMo, ZaloPay...) hỗ trợ quét VietQR để thanh toán cho đơn hàng{" "}
-            <span className="font-semibold text-gray-900">#{params.orderId}</span>
-          </p>
+        <div className="p-6 sm:p-8 flex flex-col items-center justify-center space-y-5">
+          <h3 className="text-[#003366] font-bold text-lg text-center">
+            Mở app ngân hàng / Ví và quét mã QR
+          </h3>
 
-          <div className="p-4 bg-gray-50 border-2 border-dashed border-[#003366]/30 rounded-2xl">
+          <div className="w-full max-w-[380px] flex justify-center bg-white p-2 sm:p-4 rounded-3xl shadow-sm border-2 border-[#003366]/5">
             <img
-              src={`https://img.vietqr.io/image/mbbank-0969919191-compact2.png?amount=${amount}&addInfo=Thanh toan don hang ${params.orderId}&accountName=25Zone%20Shop`}
+              src={qrUrl}
               alt="Mã VietQR"
-              className="w-56 h-56 object-contain"
+              className="w-full h-auto object-contain rounded-xl"
             />
           </div>
 
-          <div className="w-full bg-gray-50 rounded-xl p-4 flex justify-between items-center">
-            <span className="text-gray-600 font-medium">Số tiền thanh toán:</span>
-            <span className="text-2xl font-extrabold text-[#003366]">
-              {Number(amount).toLocaleString()}đ
-            </span>
-          </div>
-
-          <div className="w-full space-y-3 pt-4">
+          <div className="flex flex-col items-center gap-3 pt-2">
             <button
-              onClick={handlePaymentSuccess}
-              className="w-full bg-[#003366] hover:bg-[#002244] text-white py-3.5 rounded-xl font-bold text-lg transition-colors shadow-lg shadow-[#003366]/30 flex items-center justify-center gap-2"
+              onClick={handleDownloadQR}
+              className="flex items-center gap-2 bg-[#003366]/10 text-[#003366] hover:bg-[#003366]/20 px-6 py-2.5 rounded-full font-bold transition-colors"
             >
-              <i className="fa-solid fa-check-circle"></i>
-              Mô phỏng thanh toán xong
+              <i className="fa-solid fa-download"></i> Tải ảnh QR
             </button>
-            <button
-              onClick={handleCancel}
-              className="block w-full py-3.5 text-center text-gray-600 font-semibold hover:bg-gray-50 rounded-xl transition-colors"
-            >
-              Hủy giao dịch
-            </button>
+            <div className="flex items-center gap-2 text-gray-500 font-medium text-sm mt-2">
+              <i className="fa-solid fa-circle-notch fa-spin"></i>
+              Trạng thái: Chờ thanh toán...
+            </div>
           </div>
         </div>
+
+        {/* Actions Footer */}
+        <div className="w-full bg-gray-50 p-6 flex flex-col gap-3 border-t border-gray-100">
+          <button
+            onClick={handlePaymentSuccess}
+            className="bg-[#003366] hover:bg-[#002244] text-white py-3.5 px-6 rounded-full font-extrabold text-[15px] sm:text-base transition-all shadow-xl hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2 w-full"
+          >
+            <i className="fa-solid fa-check-circle text-lg"></i>
+            Thanh Toán
+          </button>
+          <button
+            onClick={() => setShowCancelPopup(true)}
+            className="py-3 px-6 text-center text-gray-600 font-bold hover:bg-gray-200 bg-gray-100 rounded-full transition-colors w-full border border-gray-200 flex items-center justify-center gap-2"
+          >
+            <i className="fa-solid fa-xmark"></i>
+            Hủy giao dịch
+          </button>
+        </div>
       </div>
-      
-      <p className="mt-8 text-sm text-gray-500">
+
+      <p className="mt-8 text-sm font-medium text-[#003366]/60">
         © 2026 25Zone Shop. Mọi quyền được bảo lưu.
       </p>
+
+      {/* Cancel Confirmation Modal */}
+      {showCancelPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#003366]/40 backdrop-blur-sm transition-opacity duration-200">
+          <div className="bg-white rounded-[32px] p-8 w-full max-w-sm shadow-2xl text-center">
+            <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5 shadow-inner">
+              <i className="fa-solid fa-triangle-exclamation text-red-500 text-4xl"></i>
+            </div>
+            <h3 className="text-2xl font-extrabold text-[#003366] mb-3 uppercase">Xác nhận hủy</h3>
+            <p className="text-gray-600 mb-8 font-medium">Bạn có chắc chắn muốn hủy giao dịch thanh toán này không?</p>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowCancelPopup(false)}
+                className="flex-1 py-3.5 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                Không
+              </button>
+              <button
+                onClick={confirmCancel}
+                disabled={cancelLoading}
+                className="flex-1 py-3.5 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 transition-colors shadow-lg shadow-red-500/30 flex items-center justify-center gap-2"
+              >
+                {cancelLoading ? <i className="fa-solid fa-spinner animate-spin"></i> : "Hủy ngay"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Success Toast */}
+      {cancelSuccessToast && (
+        <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[10000] flex items-center justify-center p-4 pointer-events-none">
+          <div className="pointer-events-auto bg-[#FEF2F2] border border-[#EF4444] rounded-xl shadow-lg px-6 py-4 flex items-center gap-4 min-w-[320px] max-w-[400px]">
+            <div className="flex-shrink-0">
+              <i className="fa-regular fa-circle-xmark text-[#EF4444] text-2xl"></i>
+            </div>
+            <div className="flex-grow">
+              <p className="text-[#EF4444] font-bold text-[16px]">
+                Giao dịch đã được hủy
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Success Popup */}
+      {paymentSuccessPopup && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-[32px] shadow-2xl p-8 max-w-sm w-full text-center">
+            <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <i className="fa-solid fa-check text-4xl text-green-500"></i>
+            </div>
+            <h3 className="text-2xl font-extrabold text-[#003366] mb-2">Thanh toán thành công!</h3>
+            <p className="text-gray-500 font-medium mb-6">Hệ thống đang xử lý và chuyển hướng...</p>
+            <div className="flex justify-center">
+              <i className="fa-solid fa-circle-notch fa-spin text-[#003366] text-3xl"></i>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -56,8 +56,8 @@ function ProductCard({
 
   return (
     <Link href={`/products/${product.Id_product}`} className="block h-full w-full">
-      <div className="group bg-white rounded-[32px] overflow-hidden shadow-2xl w-full h-full flex flex-col transition-transform hover:-translate-y-1 cursor-pointer border border-gray-100">
-        <div className="relative w-full overflow-hidden h-[220px]">
+      <div className="group bg-white rounded-[24px] sm:rounded-[32px] overflow-hidden shadow-xl sm:shadow-2xl w-full h-full flex flex-col transition-transform hover:-translate-y-1 cursor-pointer border border-gray-100">
+        <div className="relative w-full overflow-hidden h-[180px] sm:h-[220px]">
           <img
             src={getImageUrl(product.Thumbnail)}
             alt={product.Name_product}
@@ -65,29 +65,31 @@ function ProductCard({
           />
         </div>
 
-        <div className="bg-white flex-1 flex flex-col p-4 sm:p-5">
-          <h3 className="font-extrabold text-[#003366] uppercase text-[16px] line-clamp-2">
+        <div className="bg-white flex-1 flex flex-col p-3 sm:p-5">
+          <h3 className="font-extrabold text-[#003366] uppercase text-sm sm:text-[16px] line-clamp-2 leading-snug min-h-[42px] sm:min-h-[48px]">
             {product.Name_product}
           </h3>
 
-          <p className="text-sm text-[#003366] font-semibold line-clamp-1 mt-1">
+          <p className="text-xs sm:text-sm text-[#003366] font-semibold line-clamp-1 mt-1">
             {product.Category_Name}
           </p>
 
-          <div className="h-[3px] w-12 bg-[#003366] mt-2 mb-3"></div>
+          <div className="h-[2px] sm:h-[3px] w-8 sm:w-12 bg-[#003366] mt-2 mb-2 sm:mb-3"></div>
 
           <div className="mt-auto">
-            <p className="text-xs font-semibold text-gray-400 mb-1">GIÁ SẢN PHẨM</p>
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-[#8b1e1e] font-extrabold text-2xl tracking-tight">
-                {product.Price.toLocaleString()}đ
-              </p>
+            <p className="text-[10px] sm:text-xs font-semibold text-gray-400 mb-1">GIÁ SẢN PHẨM</p>
+            <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
+              <div className="flex-1">
+                <p className="text-[#8b1e1e] font-extrabold text-base sm:text-xl lg:text-2xl tracking-tight leading-none break-words">
+                  {product.Price.toLocaleString()}đ
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(product); }}
-                className="ml-auto w-10 h-10 flex-shrink-0 rounded-full bg-[#003366] text-white flex items-center justify-center hover:bg-[#002244] hover:scale-105 active:scale-95 transition-all shadow-md"
+                className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 rounded-full bg-[#003366] text-white flex items-center justify-center hover:bg-[#002244] hover:scale-105 active:scale-95 transition-all shadow-md ml-auto"
               >
-                <i className={liked ? "fa-solid fa-heart" : "fa-regular fa-heart"}></i>
+                <i className={`${liked ? "fa-solid fa-heart" : "fa-regular fa-heart"} text-xs sm:text-sm`}></i>
               </button>
             </div>
 
@@ -98,7 +100,7 @@ function ProductCard({
                 onAddToCart(product);
               }}
               disabled={product.Quantity === 0}
-              className={`w-full py-2 rounded-xl font-bold text-sm transition ${product.Quantity === 0
+              className={`w-full py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-[11px] sm:text-sm transition ${product.Quantity === 0
                 ? "bg-gray-400 text-white cursor-not-allowed"
                 : "bg-[#003366] text-white hover:bg-[#00264d]"
                 }`}
@@ -173,7 +175,8 @@ export default function ProductsPage() {
         const res = await fetch(url);
         const data = await res.json();
 
-        setProducts(data);
+        const available = Array.isArray(data) ? data.filter((p: any) => p.Quantity && p.Quantity > 0) : [];
+        setProducts(available);
         setCurrentPage(1);
       } catch (err) {
         console.log(err);
@@ -216,7 +219,9 @@ export default function ProductsPage() {
       if (pMax !== DEFAULT_MAX) params.append("priceMax", pMax);
       const res = await fetch(`http://localhost:5001/api/sanpham/filter?${params.toString()}`);
       const data = await res.json();
-      setProducts(data);
+      
+      const available = Array.isArray(data) ? data.filter((p: any) => p.Quantity && p.Quantity > 0) : [];
+      setProducts(available);
       setHasAppliedFilter(true);
       setCurrentPage(1);
     } catch (err) {

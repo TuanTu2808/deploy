@@ -41,12 +41,12 @@ function FlashSaleCard({ product }: { product: any }) {
 
   return (
     <Link href={`/products/${product.Id_product}`} className="block h-full w-full">
-      <div className="group bg-white rounded-3xl p-4 shadow-lg text-center flex flex-col relative h-full w-full transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl cursor-pointer">
-        <span className="absolute top-3 right-3 z-10 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+      <div className="group bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-md sm:shadow-lg text-center flex flex-col relative h-full w-full transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl cursor-pointer border border-gray-100">
+        <span className="absolute top-2 sm:top-3 right-2 sm:right-3 z-10 bg-red-500 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded shadow">
           -{discount}%
         </span>
 
-        <div className="rounded-2xl overflow-hidden border-4 border-gray-100 mb-4 aspect-square">
+        <div className="rounded-xl sm:rounded-2xl overflow-hidden border-2 sm:border-4 border-gray-100 mb-3 sm:mb-4 aspect-square relative">
           <img
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             src={getImageUrl(product.Thumbnail)}
@@ -54,15 +54,15 @@ function FlashSaleCard({ product }: { product: any }) {
           />
         </div>
 
-        <h3 className="text-sm font-semibold text-[#003366] text-left line-clamp-2">
+        <h3 className="text-xs sm:text-sm font-semibold text-[#003366] text-left line-clamp-2 leading-tight min-h-[36px] sm:min-h-[40px]">
           {product.Name_product}
         </h3>
 
         <div className="text-left mt-auto pt-2">
-          <p className="line-through text-gray-400 text-sm">
+          <p className="line-through text-gray-400 text-[10px] sm:text-xs break-words">
             {product.Price?.toLocaleString()}đ
           </p>
-          <p className="text-red-600 font-extrabold text-lg">
+          <p className="text-red-600 font-extrabold text-sm sm:text-lg tracking-tight break-words">
             {product.Sale_Price?.toLocaleString()}đ
           </p>
         </div>
@@ -92,7 +92,7 @@ function ProductCard({
 
   return (
     <Link href={`/products/${product.Id_product}`} className="w-full h-full">
-      <div className="group bg-white rounded-[32px] overflow-hidden shadow-2xl max-w-[320px] w-full h-full flex flex-col transition-transform hover:-translate-y-1 cursor-pointer">
+      <div className="group bg-white rounded-[24px] sm:rounded-[32px] overflow-hidden shadow-xl sm:shadow-2xl max-w-[320px] mx-auto w-full h-full flex flex-col transition-transform hover:-translate-y-1 cursor-pointer border border-gray-100">
         <div className="relative w-full overflow-hidden aspect-square">
           <img
             alt={product.Name_product}
@@ -101,28 +101,30 @@ function ProductCard({
           />
         </div>
 
-        <div className="bg-white flex-1 flex flex-col rounded-t-[32px] -mt-8 sm:-mt-10 p-4 sm:p-6 relative z-10">
-          <h3 className="text-[18px] sm:text-[22px] font-extrabold text-[#003366] uppercase line-clamp-2">
+        <div className="bg-white flex-1 flex flex-col rounded-t-[24px] sm:rounded-t-[32px] -mt-6 sm:-mt-10 p-3 sm:p-6 relative z-10">
+          <h3 className="text-base sm:text-[22px] leading-snug font-extrabold text-[#003366] uppercase line-clamp-2 min-h-[48px] sm:min-h-[64px]">
             {product.Name_product}
           </h3>
 
-          <p className="text-sm text-[#003366] mt-1">{product.Category_Name}</p>
+          <p className="text-xs sm:text-sm text-[#003366] mt-1">{product.Category_Name}</p>
 
-          <div className="h-[3px] w-12 bg-[#003366] mt-2 mb-4"></div>
+          <div className="h-[2px] sm:h-[3px] w-8 sm:w-12 bg-[#003366] mt-2 mb-3 sm:mb-4"></div>
 
           <div className="mt-auto">
-            <p className="text-xs text-gray-400 uppercase">Giá sản phẩm</p>
+            <p className="text-[10px] sm:text-xs text-gray-400 uppercase">Giá sản phẩm</p>
 
-            <div className="flex items-center mt-2">
-              <span className="text-[#8b1e1e] font-extrabold text-3xl">
-                {product.Price?.toLocaleString()}đ
-              </span>
+            <div className="flex items-center justify-between mt-1 sm:mt-2 gap-2">
+              <div className="flex-1">
+                <span className="text-[#8b1e1e] font-extrabold text-base sm:text-2xl lg:text-3xl tracking-tight break-words">
+                  {product.Price?.toLocaleString()}đ
+                </span>
+              </div>
 
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(product); }}
-                className="ml-auto w-10 h-10 flex-shrink-0 rounded-full bg-[#003366] text-white flex items-center justify-center hover:bg-[#002244] hover:scale-105 active:scale-95 transition-all shadow-md"
+                className="ml-auto w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 rounded-full bg-[#003366] text-white flex items-center justify-center hover:bg-[#002244] hover:scale-105 active:scale-95 transition-all shadow-md"
               >
-                <i className={liked ? "fa-solid fa-heart" : "fa-regular fa-heart"}></i>
+                <i className={`${liked ? "fa-solid fa-heart" : "fa-regular fa-heart"} text-xs sm:text-sm`}></i>
               </button>
             </div>
 
@@ -131,7 +133,7 @@ function ProductCard({
                 e.preventDefault();
                 onBuyNow(product);
               }}
-              className="w-full mt-4 py-3 rounded-2xl bg-[#003366] text-white font-bold"
+              className="w-full mt-3 sm:mt-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl bg-[#003366] text-white font-bold text-xs sm:text-base transition hover:bg-[#00264d]"
             >
               MUA NGAY
             </button>
@@ -234,22 +236,17 @@ export default function HomePage() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const flash = await fetch(
-          "http://localhost:5001/api/sanpham/flash-sale?limit=12",
-        );
-
-        if (!flash.ok) {
-          console.error("API flash-sale lỗi");
-          return;
-        }
-
-        const flashData = await flash.json();
-
-        setFlashSale(Array.isArray(flashData) ? flashData : []);
-
         const best = await fetch("http://localhost:5001/api/sanpham");
-        const bestData = await best.json();
-        setBestSeller(bestData.slice(0, 4));
+        const allProducts = await best.json();
+
+        const validSales = Array.isArray(allProducts)
+          ? allProducts.filter((p: any) => p.Sale_Price && p.Sale_Price < p.Price && p.Sale_Price !== 0 && p.Quantity && p.Quantity > 0)
+          : [];
+
+        const shuffledSales = [...validSales].sort(() => 0.5 - Math.random());
+        setFlashSale(shuffledSales.slice(0, 8));
+
+        setBestSeller(Array.isArray(allProducts) ? allProducts.slice(0, 4) : []);
 
         const sap = await fetch("http://localhost:5001/api/sanpham/category/1");
         const sapData = await sap.json();

@@ -116,6 +116,8 @@ export default function ProductDetailPage() {
   const { user, token } = useAuth();
   const [reviewError, setReviewError] = useState("");
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [checkingPurchase, setCheckingPurchase] = useState(false);
+  const [showNotPurchasedPopup, setShowNotPurchasedPopup] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -572,18 +574,57 @@ export default function ProductDetailPage() {
             {/* Right: Write review button */}
             <div className="lg:col-span-1 flex items-center justify-center">
               <button
-                onClick={() => {
+                disabled={checkingPurchase}
+                onClick={async () => {
                   if (!user) {
                     router.push(
                       `/login?returnTo=${encodeURIComponent(`/products/${id}`)}`,
                     );
                     return;
                   }
+
+                  setCheckingPurchase(true);
+                  try {
+                    const authToken = token || loadToken();
+                    const ordersRes = await fetch("http://localhost:5001/api/orders/me?status=completed", {
+                      headers: { Authorization: `Bearer ${authToken}` },
+                    });
+                    
+                    if (ordersRes.ok) {
+                      const data = await ordersRes.json();
+                      const orders = data.orders || [];
+                      
+                      let hasPurchased = false;
+                      
+                      for (const order of orders) {
+                        const detailRes = await fetch(`http://localhost:5001/api/orders/me/${order.Id_order}`, {
+                          headers: { Authorization: `Bearer ${authToken}` },
+                        });
+                        if (detailRes.ok) {
+                          const detail = await detailRes.json();
+                          if (detail.items && detail.items.some((item: any) => String(item.Id_product) === String(id))) {
+                            hasPurchased = true;
+                            break;
+                          }
+                        }
+                      }
+
+                      if (!hasPurchased) {
+                        setShowNotPurchasedPopup(true);
+                        setCheckingPurchase(false);
+                        return;
+                      }
+                    }
+                  } catch (error) {
+                    console.error("Lỗi kiểm tra mua hàng:", error);
+                  }
+                  
+                  setCheckingPurchase(false);
                   setShowReview(true);
                 }}
-                className="w-full py-3 px-4 bg-white border-2 border-gray-700 text-gray-900 font-extrabold rounded transition hover:bg-gray-50"
+                className="w-full py-3 px-4 bg-white border-2 border-gray-700 text-gray-900 font-extrabold rounded transition hover:bg-gray-50 disabled:opacity-50"
               >
-                VIẾT ĐÁNH GIÁ
+                {checkingPurchase ? "ĐANG KIỂM TRA..." : "VIẾT ĐÁNH GIÁ"}
               </button>
             </div>
           </div>
@@ -742,6 +783,31 @@ export default function ProductDetailPage() {
               className="w-full py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {reviewSubmitting ? "Đang gửi..." : "Gửi đánh giá"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Not Purchased Popup */}
+      {showNotPurchasedPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-sm w-full text-center relative mx-4">
+            <button
+              onClick={() => setShowNotPurchasedPopup(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+            >
+              <i className="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <i className="fa-solid fa-triangle-exclamation text-red-500 text-3xl"></i>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Không thể đánh giá</h3>
+            <p className="text-gray-600 mb-6">Bạn chưa mua sản phẩm này hoặc đơn hàng chưa hoàn thành nên không thể đánh giá.</p>
+            <button
+              onClick={() => setShowNotPurchasedPopup(false)}
+              className="bg-[#003366] text-white font-bold py-2 px-6 rounded-lg hover:bg-[#002244] transition w-full"
+            >
+              Đã hiểu
             </button>
           </div>
         </div>
