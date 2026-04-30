@@ -18,7 +18,7 @@ type AuthModalProps = {
   logoSrc?: string;
 };
 
-type ForgotStep = "request" | "reset";
+type ForgotStep = "request" | "otp" | "reset";
 
 type LoginFieldErrors = {
   identifier?: string;
@@ -130,6 +130,7 @@ export default function AuthModal({
   const [forgotConfirmPassword, setForgotConfirmPassword] = useState("");
   const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
   const [showForgotConfirmPassword, setShowForgotConfirmPassword] = useState(false);
+  const [authSuccessAnim, setAuthSuccessAnim] = useState(false);
   const [debugOtp, setDebugOtp] = useState("");
 
   const [loading, setLoading] = useState(false);
@@ -370,7 +371,7 @@ export default function AuthModal({
         method: "POST",
         body: { identifier: forgotIdentifier.trim() },
       });
-      setForgotStep("reset");
+      setForgotStep("otp");
       setSuccess(response.message || "OTP đã được gửi.");
       setDebugOtp(response.debug?.otp || "");
     } catch (err) {
@@ -379,6 +380,20 @@ export default function AuthModal({
       setLoading(false);
     }
   };
+
+  const onOtpSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (forgotOtp.trim().length < 6) {
+      setError("Vui lòng nhập đủ mã OTP 6 số.");
+      return;
+    }
+
+    setForgotStep("reset");
+  };
+
 
   const onResetPassword = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -465,11 +480,11 @@ export default function AuthModal({
   );
 
   return (
-    <div className="fixed inset-0 z-[90]">
+    <div className={"fixed inset-0 z-[90] " + (authSuccessAnim ? "pointer-events-none" : "")}>
       <div
         className={
           "absolute inset-0 bg-black/45 transition-opacity duration-200 pointer-events-none " +
-          (visible ? "opacity-100" : "opacity-0")
+          (visible && !authSuccessAnim ? "opacity-100" : "opacity-0")
         }
         aria-hidden="true"
       />
@@ -485,24 +500,34 @@ export default function AuthModal({
       >
         <div
           className={
-            "relative w-full max-w-[900px] bg-white rounded-none md:rounded-3xl shadow-2xl " +
-            "overflow-y-auto md:overflow-hidden h-[100dvh] md:h-auto md:max-h-[92vh] " +
-            "grid grid-cols-1 md:grid-cols-2 transition-all duration-200 " +
-            (visible ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-[.98] translate-y-2")
+            "bg-white shadow-2xl transition-all duration-300 " +
+            (visible ? "opacity-100 scale-100 translate-y-0 " : "opacity-0 scale-[.98] translate-y-2 ") +
+            (authSuccessAnim
+              ? "fixed top-[100px] right-4 md:right-10 w-auto max-w-[320px] rounded-xl p-4 flex items-center gap-3 border border-emerald-100 pointer-events-auto"
+              : "relative w-full max-w-[900px] rounded-none md:rounded-3xl overflow-y-auto md:overflow-hidden h-[100dvh] md:h-auto md:max-h-[92vh] grid grid-cols-1 md:grid-cols-2")
           }
           onClick={(event) => event.stopPropagation()}
         >
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Đóng"
-            className="absolute right-3 top-3 z-10 w-10 h-10 rounded-full bg-white/90 border border-gray-200
-                       flex items-center justify-center hover:text-accent-blue transition"
-          >
-            <i className="fa-solid fa-xmark text-[18px]" />
-          </button>
+          {!authSuccessAnim && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Đóng"
+              className="absolute right-3 top-3 z-10 w-10 h-10 rounded-full bg-white/90 border border-gray-200
+                         flex items-center justify-center hover:text-accent-blue transition"
+            >
+              <i className="fa-solid fa-xmark text-[18px]" />
+            </button>
+          )};
+          {authSuccessAnim ? (
+            <div className="flex items-center gap-3 w-full">
+              <div className="w-10 h-10 shrink-0 rounded-full bg-emerald-100 flex items-center justify-center">
+                <i className="fa-solid fa-check text-xl text-emerald-600"></i>
+              </div>
+              <h2 className="text-[15px] font-bold text-[#003366] m-0">Đăng nhập thành công!</h2>
+            </div>
+          ) : mode === "login" ? (
 
-          {mode === "login" ? (
             <>
               <div className="hidden md:flex">
                 <AccentPanel
@@ -522,7 +547,7 @@ export default function AuthModal({
                 {!forgotOpen && (
                   <form className="space-y-4" onSubmit={onSubmitLogin}>
                     <TextInput
-                      placeholder="Email / Số điện thoại"
+                      placeholder="Số điện thoại"
                       value={loginIdentifier}
                       onChange={(value) => {
                         setLoginIdentifier(value);
@@ -625,7 +650,7 @@ export default function AuthModal({
                 {forgotOpen && forgotStep === "request" && (
                   <form className="space-y-4" onSubmit={onRequestForgotOtp}>
                     <TextInput
-                      placeholder="Email / Số điện thoại"
+                      placeholder="Số điện thoại"
                       value={forgotIdentifier}
                       onChange={setForgotIdentifier}
                       autoComplete="username"
@@ -638,26 +663,36 @@ export default function AuthModal({
                                rounded-full uppercase tracking-wider
                                transition-all duration-300 active:scale-95 disabled:opacity-70"
                     >
-                      {loading ? "Đang gửi..." : "Gửi OTP qua email"}
+                      {loading ? "Đang gửi..." : "Gửi mã OTP"}
+                    </button>
+                  </form>
+                )}
+
+                {forgotOpen && forgotStep === "otp" && (
+                  <form className="space-y-4" onSubmit={onOtpSubmit}>
+                    <div className="text-sm text-gray-600 mb-4">
+                      Vui lòng nhập mã OTP 6 số đã được gửi tới số điện thoại của bạn.
+                    </div>
+                    <TextInput
+                      placeholder="Nhập mã OTP"
+                      value={forgotOtp}
+                      onChange={(val) => setForgotOtp(val.replace(/\D/g, '').slice(0, 6))}
+                      right={<i className="fa-solid fa-key text-[16px]" />}
+                    />
+                    <button
+                      type="submit"
+                      disabled={loading || forgotOtp.length < 6}
+                      className="w-full h-[52px] bg-accent-blue text-white font-extrabold
+                               rounded-full uppercase tracking-wider
+                               transition-all duration-300 active:scale-95 disabled:opacity-70"
+                    >
+                      Xác nhận
                     </button>
                   </form>
                 )}
 
                 {forgotOpen && forgotStep === "reset" && (
                   <form className="space-y-4" onSubmit={onResetPassword}>
-                    <TextInput
-                      placeholder="Email / Số điện thoại"
-                      value={forgotIdentifier}
-                      onChange={setForgotIdentifier}
-                      autoComplete="username"
-                      right={<i className="fa-regular fa-user text-[16px]" />}
-                    />
-                    <TextInput
-                      placeholder="Nhập OTP"
-                      value={forgotOtp}
-                      onChange={setForgotOtp}
-                      right={<i className="fa-solid fa-key text-[16px]" />}
-                    />
                     <TextInput
                       type={showForgotNewPassword ? "text" : "password"}
                       placeholder="Mật khẩu mới"

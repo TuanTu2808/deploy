@@ -129,11 +129,19 @@ router.get("/", async (req, res) => {
         u.Image,
         u.role,
         u.Id_store,
+        u.Experience,
         s.Name_store,
         COUNT(DISTINCT a.Id_address_ship) AS Total_addresses,
         COUNT(DISTINCT o.Id_order) AS Total_orders,
         COUNT(DISTINCT b.Id_booking) AS Total_completed_bookings,
-        COUNT(DISTINCT b.Phone) AS Total_Unique_Customers
+        COUNT(DISTINCT b.Phone) AS Total_Unique_Customers,
+        (
+           SELECT AVG(br.Rating)
+           FROM booking_rating br
+           JOIN Booking_detail bd ON br.Id_booking_detail = bd.Id_Booking_detail
+           JOIN Bookings b2 ON bd.Id_booking = b2.Id_booking
+           WHERE b2.Id_stylist = u.Id_user
+        ) AS Avg_Rating
       FROM Users u
       LEFT JOIN Stores s ON s.Id_store = u.Id_store
       LEFT JOIN Address_Ship a ON a.Id_user = u.Id_user
@@ -167,6 +175,7 @@ router.get("/", async (req, res) => {
         u.Image,
         u.role,
         u.Id_store,
+        u.Experience,
         s.Name_store
       ORDER BY u.Id_user DESC
     `;

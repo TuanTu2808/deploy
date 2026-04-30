@@ -65,7 +65,7 @@ export default function StylistPage() {
     const diff = dateObj.getDate() - day + (day === 0 ? -6 : 1);
     const monday = new Date(dateObj);
     monday.setDate(diff);
-    
+
     const dates: string[] = [];
     for (let i = 0; i < 7; i++) {
       const nextDay = new Date(monday);
@@ -158,18 +158,18 @@ export default function StylistPage() {
 
     const todayStr = getLocalYYYYMMDD();
     if (!scheduleData?.shift) {
-       if (isWeeklySchedule) {
-           const endOfWeek = getDatesOfWeek(selectedDate)[6]; // CN
-           if (endOfWeek < todayStr) {
-               alert("Tuần này đã hoàn toàn đi qua, không thể xếp lịch mới.");
-               return;
-           }
-       } else {
-           if (selectedDate < todayStr) {
-               alert("Không thể thiết lập lịch mới cho quá khứ. (Chỉ cho phép sửa lịch đã có sẵn)");
-               return;
-           }
-       }
+      if (isWeeklySchedule) {
+        const endOfWeek = getDatesOfWeek(selectedDate)[6]; // CN
+        if (endOfWeek < todayStr) {
+          alert("Tuần này đã hoàn toàn đi qua, không thể xếp lịch mới.");
+          return;
+        }
+      } else {
+        if (selectedDate < todayStr) {
+          alert("Không thể thiết lập lịch mới cho quá khứ. (Chỉ cho phép sửa lịch đã có sẵn)");
+          return;
+        }
+      }
     }
 
     try {
@@ -543,6 +543,11 @@ export default function StylistPage() {
     setCurrentPage(1);
   }, [filterStore, filterRole, filterSearch]);
 
+  const validRatings = stylists.filter(s => s.Avg_Rating != null && !isNaN(Number(s.Avg_Rating)));
+  const globalAvgRatingStr = validRatings.length > 0
+    ? (validRatings.reduce((sum, s) => sum + Number(s.Avg_Rating), 0) / validRatings.length).toFixed(1) + " ★"
+    : "Chưa có";
+
   return (
     <main className="flex-1 bg-[#F8FAFC] px-8 py-6 relative">
       {/* HEADER */}
@@ -569,7 +574,6 @@ export default function StylistPage() {
         {[
           { title: "TỔNG NHÂN SỰ", value: stylists.length, icon: "fa-solid fa-users", color: "text-slate-600", bg: "bg-slate-100", valueColor: "text-slate-800" },
           { title: "ĐANG LÀM VIỆC", value: stylists.length, icon: "fa-solid fa-user-check", color: "text-[#059669]", bg: "bg-green-50", valueColor: "text-[#059669]" },
-          { title: "ĐIỂM ĐÁNH GIÁ TB", value: "4.8 ★", icon: "fa-solid fa-star", color: "text-orange-500", bg: "bg-orange-50", valueColor: "text-orange-500" },
         ].map((item, i) => (
           <div key={i} className="bg-white p-5 rounded-xl border border-slate-200 flex items-center justify-between">
             <div>
@@ -760,8 +764,7 @@ export default function StylistPage() {
                     <p className="text-slate-400">Địa chỉ</p>
                     <p className="font-bold text-slate-800 line-clamp-2" title={selectedStylist.Address}>{selectedStylist.Address}</p>
                   </div>
-                  {/* Default placeholders for visual consistency with the original design */}
-                  <div><p className="text-slate-400">Kinh nghiệm</p><p className="font-bold text-slate-800">5 Năm</p></div>
+                  <div><p className="text-slate-400">Kinh nghiệm</p><p className="font-bold text-slate-800">{selectedStylist.Experience ? `${selectedStylist.Experience} Năm` : "Chưa cập nhật"}</p></div>
                   <div><p className="text-slate-400">Số đơn hoàn thành</p><p className="font-bold text-slate-800">{selectedStylist.Total_completed_bookings || 0}</p></div>
                 </div>
               </div>
@@ -861,7 +864,7 @@ export default function StylistPage() {
               </div>
               <div className="grid grid-cols-2 gap-3 text-center">
                 <div className="bg-slate-50 py-3 rounded-lg"><p className="text-xs text-slate-400 mb-1">Số khách</p><p className="font-bold text-xl text-slate-800">{selectedStylist.Total_Unique_Customers || 0}</p></div>
-                <div className="bg-slate-50 py-3 rounded-lg"><p className="text-xs text-slate-400 mb-1">Đánh giá</p><p className="font-bold text-xl text-orange-500">4.9/5</p></div>
+                <div className="bg-slate-50 py-3 rounded-lg"><p className="text-xs text-slate-400 mb-1">Đánh giá</p><p className="font-bold text-xl text-orange-500">{selectedStylist.Avg_Rating ? Number(selectedStylist.Avg_Rating).toFixed(1) + " ★" : "0"}/5</p></div>
               </div>
             </div>
           </div>

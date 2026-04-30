@@ -1,6 +1,7 @@
 import express from "express";
 import { randomInt } from "crypto";
 import database from "../database.js";
+import twilio from "twilio";
 import { hashPassword, comparePassword, isBcryptHash } from "../utils/password.js";
 import {
   sanitizeUser,
@@ -13,6 +14,24 @@ import {
 import { sendResetOtpEmail } from "../utils/mailer.js";
 
 const router = express.Router();
+
+const twilioClient = twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN
+);
+
+const formatPhone = (phone) => {
+  if (!phone) return phone;
+  const p = String(phone).trim();
+  if (p.startsWith("0")) {
+    return "+84" + p.slice(1);
+  }
+  if (!p.startsWith("+")) {
+    return "+" + p;
+  }
+  return p;
+};
+
 
 const USER_FIELDS = `
   Id_user,
@@ -328,54 +347,40 @@ router.post("/forgot-password", async (req, res) => {
 
     const user = await findUserByIdentifier(identifier);
 
-    // Trả về message chung để không lộ thông tin tài khoản.
     if (!user) {
       return res.json({
-        message:
-          "Nếu tài khoản tồn tại, OTP đã được gửi qua email đăng ký.",
+        message: "Nếu tài khoản tồn tại, OTP đã được gửi về số điện thoại đăng ký.",
       });
     }
 
-    const otp = String(randomInt(100000, 1000000));
-    const expiredAt = new Date(Date.now() + 15 * 60 * 1000);
+    if (!user.Phone) {
+      return res.status(400).json({ message: "Tài khoản không có số điện thoại để nhận OTP." });
+    }
+
+    try {
+      await twilioClient.verify.v2
+        .services(process.env.TWILIO_VERIFY_SID)
+        .verifications.create({
+          to: formatPhone(user.Phone),
+          channel: "sms",
+        });
+    } catch (err) {
+      console.error("TWILIO SEND ERROR:", err);
+      return res.status(500).json({ message: "Lỗi khi gửi OTP qua SMS. Vui lòng thử lại sau." });
+    }
 
     await database.query(
       `
         UPDATE Users
-        SET Reset_otp = ?, Reset_otp_expired = ?
+        SET Reset_otp = NULL, Reset_otp_expired = NULL
         WHERE Id_user = ?
       `,
-      [otp, expiredAt, user.Id_user]
+      [user.Id_user]
     );
 
-    let mailResult = { delivered: false, reason: "unknown" };
-    try {
-      mailResult = await sendResetOtpEmail({
-        to: user.Email,
-        name: user.Name_user,
-        otp,
-      });
-    } catch (mailError) {
-      console.error("Lỗi gửi email OTP:", mailError);
-      mailResult = { delivered: false, reason: "send_failed" };
-    }
-
-    const response = {
-      message: "Nếu tài khoản tồn tại, OTP đã được gửi qua email đăng ký.",
-    };
-
-    if (process.env.NODE_ENV !== "production") {
-      response.debug = {
-        otp,
-        expiresAt: expiredAt,
-        mailDelivery: mailResult.delivered
-          ? "sent"
-          : `fallback_${mailResult.reason}`,
-        sentTo: user.Email,
-      };
-    }
-
-    return res.json(response);
+    return res.json({
+      message: "Nếu tài khoản tồn tại, OTP đã được gửi về số điện thoại đăng ký.",
+    });
   } catch (error) {
     console.error("Lỗi quên mật khẩu:", error);
     return res.status(500).json({ message: "Lỗi server khi gửi OTP." });
@@ -401,17 +406,28 @@ router.post("/reset-password", async (req, res) => {
     }
 
     const user = await findUserByIdentifier(identifier);
-    if (!user || !user.Reset_otp || !user.Reset_otp_expired) {
-      return res
-        .status(400)
-        .json({ message: "OTP không hợp lệ hoặc đã hết hạn." });
+    if (!user) {
+      return res.status(400).json({ message: "OTP không hợp lệ hoặc đã hết hạn." });
     }
 
-    const expiredAt = new Date(user.Reset_otp_expired);
-    if (otp !== String(user.Reset_otp) || expiredAt.getTime() < Date.now()) {
-      return res
-        .status(400)
-        .json({ message: "OTP không hợp lệ hoặc đã hết hạn." });
+    if (!user.Phone) {
+      return res.status(400).json({ message: "Tài khoản không có số điện thoại để xác thực." });
+    }
+
+    try {
+      const response = await twilioClient.verify.v2
+        .services(process.env.TWILIO_VERIFY_SID)
+        .verificationChecks.create({
+          to: formatPhone(user.Phone),
+          code: otp,
+        });
+
+      if (response.status !== "approved") {
+        return res.status(400).json({ message: "Mã OTP không hợp lệ." });
+      }
+    } catch (err) {
+      console.error("TWILIO VERIFY ERROR:", err);
+      return res.status(400).json({ message: "Mã OTP không hợp lệ hoặc đã hết hạn." });
     }
 
     const hashedPassword = await hashPassword(newPassword);

@@ -144,6 +144,23 @@ export default function Sidebar() {
             </div>
           </Link>
 
+          <Link href="/admin/danhmucdichvu">
+            <div
+              className={`flex items-center justify-between px-4 py-3 rounded-lg text-sm cursor-pointer transition
+              ${
+                isActive("/admin/danhmucdichvu")
+                  ? "bg-blue-50 text-[#0077B6] font-semibold  "
+                  : "text-gray-600 hover:bg-blue-50 hover:text-[#0077B6]"
+              }
+            `}
+            >
+              <span className="flex items-center gap-3">
+                <i className="fa-solid fa-list w-5"></i>
+                Danh mục dịch vụ
+              </span>
+            </div>
+          </Link>
+
           <Link href="/admin/dichvucombo">
             <div
               className={`flex items-center justify-between px-4 py-3 rounded-lg text-sm cursor-pointer transition

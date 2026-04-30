@@ -23,6 +23,7 @@ export default function BookingAccountPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [profileError, setProfileError] = useState("");
   const [profileSuccess, setProfileSuccess] = useState("");
@@ -39,6 +40,16 @@ export default function BookingAccountPage() {
   useEffect(() => {
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    if (!passwordModalOpen) {
+      setPasswordError("");
+      setPasswordSuccess("");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    }
+  }, [passwordModalOpen]);
 
   const submitProfile = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -119,10 +130,10 @@ export default function BookingAccountPage() {
           },
         }
       );
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
       setPasswordSuccess(response.message || "Cập nhật mật khẩu thành công.");
+      setTimeout(() => {
+        setPasswordModalOpen(false);
+      }, 1500);
     } catch (err) {
       setPasswordError(errorMessage(err));
     } finally {
@@ -307,116 +318,121 @@ export default function BookingAccountPage() {
                 </div>
               </form>
 
-              <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
-                <div className="mb-4">
-                  <h4 className="text-base font-extrabold text-[#003366]">
+              <div className="mt-8 border-t border-gray-100 pt-8">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gray-50 p-5 rounded-2xl border border-gray-200">
+                  <div>
+                    <h4 className="text-base font-extrabold text-[#003366]">Bảo mật tài khoản</h4>
+                    <p className="text-sm text-gray-500 mt-1">Cập nhật mật khẩu để bảo vệ tài khoản của bạn</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPasswordModalOpen(true)}
+                    className="inline-flex rounded-xl bg-white border border-gray-200 px-5 py-2.5 text-sm font-bold text-[#003366] hover:bg-gray-50 hover:border-[#003366]/30 transition shrink-0"
+                  >
                     Đổi mật khẩu
-                  </h4>
+                  </button>
                 </div>
-
-                {passwordError ? (
-                  <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    {passwordError}
-                  </div>
-                ) : null}
-
-                {passwordSuccess ? (
-                  <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                    {passwordSuccess}
-                  </div>
-                ) : null}
-
-                <form onSubmit={submitPassword} className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="md:col-span-2">
-                    <label className="mb-2 block text-sm font-semibold text-gray-700">
-                      Mật khẩu hiện tại
-                    </label>
-                    <div className="relative">
-                      <input
-                        value={currentPassword}
-                        onChange={(event) => setCurrentPassword(event.target.value)}
-                        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 pr-12 text-sm outline-none focus:ring-2 focus:ring-[#003366]/20"
-                        placeholder="Nhập mật khẩu hiện tại"
-                        type={showCurrentPassword ? "text" : "password"}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowCurrentPassword((value) => !value)}
-                        aria-label={showCurrentPassword ? "Ẩn mật khẩu hiện tại" : "Hiện mật khẩu hiện tại"}
-                        className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-gray-400 transition hover:text-[#003366]"
-                      >
-                        <span className="material-symbols-outlined text-[20px]">
-                          {showCurrentPassword ? "visibility" : "visibility_off"}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-semibold text-gray-700">
-                      Mật khẩu mới
-                    </label>
-                    <div className="relative">
-                      <input
-                        value={newPassword}
-                        onChange={(event) => setNewPassword(event.target.value)}
-                        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 pr-12 text-sm outline-none focus:ring-2 focus:ring-[#003366]/20"
-                        placeholder="Nhập mật khẩu mới"
-                        type={showNewPassword ? "text" : "password"}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowNewPassword((value) => !value)}
-                        aria-label={showNewPassword ? "Ẩn mật khẩu mới" : "Hiện mật khẩu mới"}
-                        className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-gray-400 transition hover:text-[#003366]"
-                      >
-                        <span className="material-symbols-outlined text-[20px]">
-                          {showNewPassword ? "visibility" : "visibility_off"}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-semibold text-gray-700">
-                      Xác nhận mật khẩu mới
-                    </label>
-                    <div className="relative">
-                      <input
-                        value={confirmPassword}
-                        onChange={(event) => setConfirmPassword(event.target.value)}
-                        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 pr-12 text-sm outline-none focus:ring-2 focus:ring-[#003366]/20"
-                        placeholder="Nhập lại mật khẩu mới"
-                        type={showConfirmPassword ? "text" : "password"}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword((value) => !value)}
-                        aria-label={showConfirmPassword ? "Ẩn xác nhận mật khẩu mới" : "Hiện xác nhận mật khẩu mới"}
-                        className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-gray-400 transition hover:text-[#003366]"
-                      >
-                        <span className="material-symbols-outlined text-[20px]">
-                          {showConfirmPassword ? "visibility" : "visibility_off"}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="md:col-span-2 pt-1">
-                    <button
-                      type="submit"
-                      disabled={passwordSaving}
-                      className="inline-flex rounded-xl border border-[#003366] bg-white px-5 py-3 font-bold text-[#003366] transition hover:bg-[#003366] hover:text-white disabled:opacity-60"
-                    >
-                      {passwordSaving ? "Đang cập nhật..." : "Cập nhật mật khẩu"}
-                    </button>
-                  </div>
-                </form>
               </div>
             </div>
           </div>
         </BookingAccountShell>
       </section>
+
+      {passwordModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/45 transition-opacity" onClick={() => setPasswordModalOpen(false)} />
+          <div className="relative w-full max-w-[440px] bg-white rounded-3xl shadow-2xl p-6 sm:p-8 animate-in fade-in zoom-in duration-200">
+            <button
+              onClick={() => setPasswordModalOpen(false)}
+              className="absolute right-4 top-4 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition"
+            >
+              <i className="fa-solid fa-xmark text-[18px] text-gray-600"></i>
+            </button>
+            
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-[#003366]">
+                <i className="fa-solid fa-lock text-2xl"></i>
+              </div>
+              <h2 className="text-2xl font-bold text-[#003366]">Đổi mật khẩu</h2>
+              <p className="text-sm text-gray-500 mt-2">Vui lòng nhập mật khẩu hiện tại và mật khẩu mới.</p>
+            </div>
+
+            {passwordError && (
+              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {passwordError}
+              </div>
+            )}
+            {passwordSuccess && (
+              <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                {passwordSuccess}
+              </div>
+            )}
+
+            <form onSubmit={submitPassword} className="space-y-4">
+              <div className="relative">
+                <input
+                  value={currentPassword}
+                  onChange={(event) => setCurrentPassword(event.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 pr-12 text-[15px] outline-none focus:ring-2 focus:ring-[#003366]/20 transition-all focus:bg-white"
+                  placeholder="Nhập mật khẩu hiện tại"
+                  type={showCurrentPassword ? "text" : "password"}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword((value) => !value)}
+                  className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-gray-400 hover:text-[#003366] transition"
+                >
+                  <i className={"fa-regular text-[16px] " + (showCurrentPassword ? "fa-eye-slash" : "fa-eye")} />
+                </button>
+              </div>
+
+              <div className="relative">
+                <input
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 pr-12 text-[15px] outline-none focus:ring-2 focus:ring-[#003366]/20 transition-all focus:bg-white"
+                  placeholder="Nhập mật khẩu mới"
+                  type={showNewPassword ? "text" : "password"}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword((value) => !value)}
+                  className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-gray-400 hover:text-[#003366] transition"
+                >
+                  <i className={"fa-regular text-[16px] " + (showNewPassword ? "fa-eye-slash" : "fa-eye")} />
+                </button>
+              </div>
+
+              <div className="relative">
+                <input
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 pr-12 text-[15px] outline-none focus:ring-2 focus:ring-[#003366]/20 transition-all focus:bg-white"
+                  placeholder="Nhập lại mật khẩu mới"
+                  type={showConfirmPassword ? "text" : "password"}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((value) => !value)}
+                  className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-gray-400 hover:text-[#003366] transition"
+                >
+                  <i className={"fa-regular text-[16px] " + (showConfirmPassword ? "fa-eye-slash" : "fa-eye")} />
+                </button>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={passwordSaving}
+                  className="w-full h-[52px] bg-[#33B1FA] text-white font-extrabold rounded-full uppercase tracking-wider transition-all duration-300 active:scale-95 disabled:opacity-70"
+                >
+                  {passwordSaving ? "Đang cập nhật..." : "Xác nhận"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

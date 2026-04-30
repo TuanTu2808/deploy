@@ -807,7 +807,7 @@ const handleQuickBooking = async (
                   
                   <button
                     onClick={handleVerifyOtp}
-                    disabled={otpLoading || otpCode.length < 4}
+                    disabled={otpLoading || otpCode.length < 6}
                     className="w-full h-14 bg-[#003C71] hover:bg-[#002d58] text-white font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-lg"
                   >
                     {otpLoading ? "Đang xác thực..." : "Xác nhận"}
