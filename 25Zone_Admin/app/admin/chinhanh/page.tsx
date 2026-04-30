@@ -28,7 +28,11 @@ export default function ChiNhanhPage() {
     Opening_time: "08:00",
     Closing_time: "21:00",
     Status: 1,
+    Image: "",
   });
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   // Location APIs
   const [provinces, setProvinces] = useState<any[]>([]);
@@ -119,8 +123,11 @@ export default function ChiNhanhPage() {
         Address: store.Address || "",
         Province: store.Province || "",
         Ward: store.Ward || "",
+        Image: store.Image || "",
       });
       setSelectedStore(store);
+      setImageFile(null);
+      setImagePreview(store.Image ? (store.Image.startsWith("http") ? store.Image : `${API_BASE}${store.Image}`) : null);
 
       // Attempt parsing address detail
       const rawAddress = store.Address || "";
@@ -142,10 +149,13 @@ export default function ChiNhanhPage() {
         Address: "",
         Province: "",
         Ward: "",
+        Image: "",
       });
       setSelectedProvinceId("");
       setSelectedWardId("");
       setAddressDetail("");
+      setImageFile(null);
+      setImagePreview(null);
     }
     setIsModalOpen(true);
   };
@@ -164,6 +174,15 @@ export default function ChiNhanhPage() {
   const handleInputChange = (e: any) => {
     setErrors({ ...errors, [e.target.name]: "" });
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+      setFormData({ ...formData, Image: "" });
+    }
   };
 
   const handleSubmit = async (e: any) => {
@@ -185,12 +204,22 @@ export default function ChiNhanhPage() {
        finalAddress = addressDetail; 
     }
 
-    const payload = { 
-      ...formData, 
-      Address: finalAddress,
-      Province: finalProvince,
-      Ward: finalWard
-    };
+    const payload = new FormData();
+    payload.append("Name_store", formData.Name_store);
+    payload.append("Address", finalAddress);
+    payload.append("Province", finalProvince);
+    payload.append("Ward", finalWard);
+    payload.append("Email", formData.Email);
+    payload.append("Phone", formData.Phone);
+    payload.append("Opening_time", formData.Opening_time);
+    payload.append("Closing_time", formData.Closing_time);
+    payload.append("Status", formData.Status.toString());
+    
+    if (imageFile) {
+      payload.append("Image", imageFile);
+    } else if (formData.Image) {
+      payload.append("Image", formData.Image);
+    }
 
     const url = modalMode === "create" 
       ? `${API_BASE}/api/chinhanh` 
@@ -199,8 +228,7 @@ export default function ChiNhanhPage() {
     try {
       const res = await authorizedAdminFetch(url, {
         method: modalMode === "create" ? "POST" : "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: payload,
       });
 
       if (res.ok) {
@@ -329,6 +357,7 @@ export default function ChiNhanhPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-slate-400 border-b border-slate-100">
+                    <th className="py-4 font-medium pl-2 w-16 text-center">HÌNH ẢNH</th>
                     <th className="py-4 font-medium pl-2">CHI NHÁNH</th>
                     <th className="font-medium">LIÊN HỆ</th>
                     <th className="font-medium text-center">TRẠNG THÁI</th>
@@ -342,6 +371,15 @@ export default function ChiNhanhPage() {
                       onClick={() => { setSelectedStore(item); setIsDetailModalOpen(true); }}
                       className={`border-b border-slate-100 last:border-none hover:bg-slate-50 transition cursor-pointer`}
                     >
+                      <td className="py-4 pl-2 flex justify-center">
+                        {item.Image ? (
+                          <img src={item.Image.startsWith("http") ? item.Image : `${API_BASE}${item.Image}`} alt="Store" className="w-10 h-10 object-cover rounded-md border border-slate-200" />
+                        ) : (
+                          <div className="w-10 h-10 bg-slate-100 rounded-md border border-slate-200 flex items-center justify-center text-slate-400">
+                            <i className="fa-solid fa-store"></i>
+                          </div>
+                        )}
+                      </td>
                       <td className="py-4 pl-2">
                          <p className="font-bold text-slate-700">{item.Name_store}</p>
                          <p className="text-xs text-slate-500 line-clamp-1 truncate w-48 mt-1" title={item.Address}>{item.Address}</p>
@@ -415,6 +453,28 @@ export default function ChiNhanhPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
+              
+              <div className="flex gap-4 items-center mb-4">
+                <div className="shrink-0 relative group">
+                  {imagePreview ? (
+                    <img src={imagePreview} alt="Preview" className="w-20 h-20 rounded-xl object-cover border border-slate-200 shadow-sm" />
+                  ) : (
+                    <div className="w-20 h-20 rounded-xl bg-slate-100 border border-slate-200 shadow-sm flex items-center justify-center text-slate-400">
+                      <i className="fa-solid fa-image text-2xl"></i>
+                    </div>
+                  )}
+                  <label className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 rounded-xl flex items-center justify-center cursor-pointer transition-opacity">
+                    <i className="fa-solid fa-camera"></i>
+                    <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                  </label>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-slate-700">Hình ảnh chi nhánh</p>
+                  <p className="text-xs text-slate-500 mt-1 mb-2">Tải lên hoặc nhập link hình ảnh trực tiếp.</p>
+                  <input type="text" name="Image" value={formData.Image} onChange={(e) => { handleInputChange(e); if (!imageFile) setImagePreview(e.target.value.startsWith('http') ? e.target.value : (e.target.value ? `${API_BASE}${e.target.value}` : null)); }} className="h-9 w-full rounded-lg border border-slate-300 px-3 outline-none text-sm focus:border-cyan-500" placeholder="Hoặc nhập link ảnh (http://...)" />
+                </div>
+              </div>
+
               <label className="block space-y-1.5 text-sm text-slate-700">
                 <span className="font-semibold">Tên chi nhánh *</span>
                 <input required type="text" name="Name_store" value={formData.Name_store} onChange={handleInputChange} className={`h-11 w-full rounded-xl border px-3 outline-none transition ${errors.Name_store ? 'border-red-500 focus:border-red-500 bg-red-50' : 'border-slate-300 focus:border-cyan-500'}`} placeholder="VD: 25Zone Cầu Giấy" />

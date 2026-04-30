@@ -25,7 +25,7 @@ export default function LichHenPage() {
 
   // Filters
   const SINGLE_SELECT_CATEGORY_IDS = [1, 2, 3]; // Cắt, Uốn, Nhuộm
-  
+
   const adminStoreId = getAdminStoreId();
   const isAdminTong = adminStoreId === 0 || adminStoreId === null || Number.isNaN(adminStoreId);
 
@@ -33,6 +33,7 @@ export default function LichHenPage() {
   const [stylistId, setStylistId] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [dateMode, setDateMode] = useState<"day" | "month" | "year">("day");
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
   const [searchTerm, setSearchTerm] = useState("");
 
   // Pagination
@@ -680,15 +681,16 @@ export default function LichHenPage() {
       // 4. Date Filter mode ('day' | 'month' | 'year')
       if (b.booking_date) {
         const bd = new Date(b.booking_date);
+        const filterD = selectedDate ? new Date(selectedDate) : today;
         if (dateMode === "day") {
           // Filter exactly today
-          if (bd.getDate() !== today.getDate() || bd.getMonth() !== today.getMonth() || bd.getFullYear() !== today.getFullYear()) {
+          if (bd.getDate() !== filterD.getDate() || bd.getMonth() !== filterD.getMonth() || bd.getFullYear() !== filterD.getFullYear()) {
             return false;
           }
         } else if (dateMode === "month") {
-          if (bd.getMonth() !== today.getMonth() || bd.getFullYear() !== today.getFullYear()) return false;
+          if (bd.getMonth() !== filterD.getMonth() || bd.getFullYear() !== filterD.getFullYear()) return false;
         } else if (dateMode === "year") {
-          if (bd.getFullYear() !== today.getFullYear()) return false;
+          if (bd.getFullYear() !== filterD.getFullYear()) return false;
         }
       }
 
@@ -697,7 +699,7 @@ export default function LichHenPage() {
 
       return true;
     });
-  }, [bookings, storeId, stylistId, searchTerm, dateMode, statusFilter, stores]);
+  }, [bookings, storeId, stylistId, searchTerm, dateMode, selectedDate, statusFilter, stores]);
 
   const handleCreateBooking = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -864,7 +866,7 @@ export default function LichHenPage() {
           {/* FILTER */}
           <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-wrap items-center gap-3">
             <select
-              className="border border-slate-200 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-blue-500 disabled:opacity-60 disabled:bg-gray-100"
+              className="border border-slate-200 w-56 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-blue-500 disabled:opacity-60 disabled:bg-gray-100"
               value={storeId}
               onChange={(e) => setStoreId(e.target.value)}
               disabled={!isAdminTong}
@@ -903,25 +905,36 @@ export default function LichHenPage() {
               <option value="cancelled">Đã hủy</option>
             </select>
 
-            <div className="ml-auto flex border border-[#e2e8f0] rounded-lg overflow-hidden text-sm font-medium">
-              <button
-                onClick={() => setDateMode('day')}
-                className={`px-4 py-1.5 transition ${dateMode === 'day' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
-              >
-                Ngày
-              </button>
-              <button
-                onClick={() => setDateMode('month')}
-                className={`px-4 py-1.5 border-l border-[#e2e8f0] transition ${dateMode === 'month' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
-              >
-                Tháng
-              </button>
-              <button
-                onClick={() => setDateMode('year')}
-                className={`px-4 py-1.5 border-l border-[#e2e8f0] transition ${dateMode === 'year' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
-              >
-                Năm
-              </button>
+            <div className="ml-auto flex items-center gap-2">
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => {
+                  setSelectedDate(e.target.value);
+                  setDateMode('day');
+                }}
+                className="border border-slate-200 px-3 py-1.5 rounded-lg text-sm focus:outline-none focus:border-blue-500 text-gray-600 outline-none"
+              />
+              <div className="flex border border-[#e2e8f0] rounded-lg overflow-hidden text-sm font-medium">
+                <button
+                  onClick={() => setDateMode('day')}
+                  className={`px-4 py-1.5 transition ${dateMode === 'day' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                >
+                  Ngày
+                </button>
+                <button
+                  onClick={() => setDateMode('month')}
+                  className={`px-4 py-1.5 border-l border-[#e2e8f0] transition ${dateMode === 'month' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                >
+                  Tháng
+                </button>
+                <button
+                  onClick={() => setDateMode('year')}
+                  className={`px-4 py-1.5 border-l border-[#e2e8f0] transition ${dateMode === 'year' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                >
+                  Năm
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1479,7 +1492,7 @@ export default function LichHenPage() {
                     const oldServiceIds = selectedBooking.service_ids || [];
                     const oldComboIds = selectedBooking.combo_ids || [];
                     const oldStylistId = String(selectedBooking.stylist_id || "");
-                    
+
                     const finalStylistId = isRequired ? assignStylistId : "";
 
                     const servicesChanged =

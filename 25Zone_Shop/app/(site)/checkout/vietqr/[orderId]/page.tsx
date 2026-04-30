@@ -19,8 +19,8 @@ export default function VietQRPaymentPage() {
   const [paymentSuccessPopup, setPaymentSuccessPopup] = useState(false);
 
   const transferContent = `DH${params.orderId}`;
-  const bankAccount = "0969919191";
-  const qrUrl = `https://img.vietqr.io/image/mbbank-${bankAccount}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(transferContent)}&accountName=25Zone%20Shop`;
+  const bankAccount = "8861998981";
+  const qrUrl = `https://img.vietqr.io/image/bidv-${bankAccount}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(transferContent)}&accountName=25Zone%20Shop`;
 
   useEffect(() => {
     if (bootstrapped && !user) {

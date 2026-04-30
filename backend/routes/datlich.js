@@ -221,7 +221,8 @@ router.get("/me/:bookingId", requireAuth, async (req, res) => {
           bd.Id_combo,
           sv.Name AS Service_name,
           cb.Name AS Combo_name,
-          br.Rating AS Item_rating
+          br.Rating AS Item_rating,
+          br.Description AS Item_description
         FROM Booking_detail bd
         LEFT JOIN Services sv ON sv.Id_services = bd.Id_services
         LEFT JOIN Combos cb ON cb.Id_combo = bd.Id_combo
@@ -241,6 +242,7 @@ router.get("/me/:bookingId", requireAuth, async (req, res) => {
       Price_at_booking: Number(item.Price_at_booking || 0),
       Duration_time: item.Duration_time,
       Rating: item.Item_rating || null,
+      Description: item.Item_description || null,
     }));
 
     const durationMinutes = items.reduce((sum, item) => {
@@ -281,6 +283,7 @@ router.get("/", async (req, res) => {
         b.Status AS status,
         b.Total_price AS total_price,
         b.Note AS note,
+        b.Description_cancel AS description_cancel,
         b.Created_booking AS created_booking,
         s.Name_store AS store_name,
         u.Name_user AS customer_name,
@@ -747,7 +750,7 @@ router.post("/", async (req, res) => {
 router.post("/rating", requireAuth, async (req, res) => {
   try {
     const userId = req.auth.id;
-    const { detailId, rating } = req.body;
+    const { detailId, rating, description } = req.body;
 
     if (!detailId || !rating || rating < 1 || rating > 5) {
       return res.status(400).json({ message: "Dữ liệu đánh giá không hợp lệ." });
@@ -773,12 +776,12 @@ router.post("/rating", requireAuth, async (req, res) => {
 
     if (existing.length > 0) {
       await database.query(`
-        UPDATE booking_rating SET Rating = ? WHERE Id_Booking_rating = ?
-      `, [rating, existing[0].Id_Booking_rating]);
+        UPDATE booking_rating SET Rating = ?, Description = ? WHERE Id_Booking_rating = ?
+      `, [rating, description || null, existing[0].Id_Booking_rating]);
     } else {
       await database.query(`
-        INSERT INTO booking_rating (Id_booking_detail, Id_user, Rating) VALUES (?, ?, ?)
-      `, [detailId, userId, rating]);
+        INSERT INTO booking_rating (Id_booking_detail, Id_user, Rating, Description) VALUES (?, ?, ?, ?)
+      `, [detailId, userId, rating, description || null]);
     }
 
     return res.json({ message: "Đánh giá thành công." });

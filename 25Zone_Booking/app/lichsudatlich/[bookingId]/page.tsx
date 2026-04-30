@@ -18,6 +18,7 @@ type BookingDetailItem = {
   Price_at_booking: number;
   Duration_time: string;
   Rating?: number | null;
+  Description?: string | null;
 };
 
 type BookingDetail = {
@@ -94,12 +95,14 @@ export default function BookingHistoryDetailPage() {
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const [ratingItem, setRatingItem] = useState<BookingDetailItem | null>(null);
   const [ratingValue, setRatingValue] = useState(5);
+  const [ratingDescription, setRatingDescription] = useState("");
   const [submittingRating, setSubmittingRating] = useState(false);
   const [ratingError, setRatingError] = useState("");
 
   const handleRateClick = (item: BookingDetailItem) => {
     setRatingItem(item);
     setRatingValue(item.Rating || 5);
+    setRatingDescription(item.Description || "");
     setRatingError("");
     setRatingModalOpen(true);
   };
@@ -114,14 +117,15 @@ export default function BookingHistoryDetailPage() {
         token,
         body: {
           detailId: ratingItem.Id_Booking_detail,
-          rating: ratingValue
+          rating: ratingValue,
+          description: ratingDescription
         }
       });
       setBooking(prev => {
         if (!prev) return prev;
         return {
           ...prev,
-          items: prev.items.map(i => i.Id_Booking_detail === ratingItem.Id_Booking_detail ? { ...i, Rating: ratingValue } : i)
+          items: prev.items.map(i => i.Id_Booking_detail === ratingItem.Id_Booking_detail ? { ...i, Rating: ratingValue, Description: ratingDescription } : i)
         };
       });
       setRatingModalOpen(false);
@@ -135,17 +139,17 @@ export default function BookingHistoryDetailPage() {
   const canCancel = useMemo(() => {
     if (!booking) return false;
     if (booking.Status !== "pending" && booking.Status !== "confirmed") return false;
-    
+
     if (!booking.Start_time) return false;
     const now = new Date().getTime();
     const startTimeStr = String(booking.Start_time);
-    
-    const startTime = startTimeStr.includes("T") 
+
+    const startTime = startTimeStr.includes("T")
       ? new Date(startTimeStr).getTime()
       : new Date(startTimeStr.replace(" ", "T")).getTime();
-      
+
     if (Number.isNaN(startTime)) return false;
-    
+
     // 15 mins = 900000 ms
     return (startTime - now) > 900000;
   }, [booking]);
@@ -359,7 +363,7 @@ export default function BookingHistoryDetailPage() {
                                   {formatMoney(item.Price_at_booking)}
                                 </p>
                                 {booking.Status === "completed" && (
-                                  <button 
+                                  <button
                                     onClick={() => handleRateClick(item)}
                                     className="px-3 py-1.5 text-sm font-semibold rounded-lg border border-amber-400 text-amber-600 hover:bg-amber-50 transition flex items-center gap-1"
                                   >
@@ -467,16 +471,16 @@ export default function BookingHistoryDetailPage() {
                             </h4>
                             <div className="grid grid-cols-2 gap-3 mt-4">
                               {booking.resultImages.map((img, idx) => {
-                                const imgSrc = img.startsWith('http') || img.startsWith('blob') || img.startsWith('data') 
-                                  ? img 
+                                const imgSrc = img.startsWith('http') || img.startsWith('blob') || img.startsWith('data')
+                                  ? img
                                   : `http://localhost:5001${img.startsWith('/') ? '' : '/'}${img}`;
                                 return (
                                   <div key={idx} className="aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-50 relative group">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img 
-                                      src={imgSrc} 
-                                      alt={`Hình ảnh kết quả ${idx + 1}`} 
-                                      className="w-full h-full object-cover transition duration-300 group-hover:scale-110" 
+                                    <img
+                                      src={imgSrc}
+                                      alt={`Hình ảnh kết quả ${idx + 1}`}
+                                      className="w-full h-full object-cover transition duration-300 group-hover:scale-110"
                                       onError={(e) => { e.currentTarget.src = 'https://placehold.co/400x400?text=L%E1%BB%97i+%E1%BA%A3nh'; }}
                                     />
                                   </div>
@@ -503,11 +507,10 @@ export default function BookingHistoryDetailPage() {
             <p className="text-sm text-slate-500 mb-4">
               Vui lòng cho 25Zone biết lý do huỷ lịch của bạn:
             </p>
-            
+
             <textarea
-              className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none mb-2 ${
-                cancelErrorStr ? "border-red-500 bg-red-50" : "border-slate-200 focus:border-blue-500 bg-slate-50"
-              }`}
+              className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none mb-2 ${cancelErrorStr ? "border-red-500 bg-red-50" : "border-slate-200 focus:border-blue-500 bg-slate-50"
+                }`}
               rows={3}
               placeholder="Nhập lý do huỷ..."
               value={cancelReason}
@@ -552,7 +555,7 @@ export default function BookingHistoryDetailPage() {
             <p className="text-sm text-slate-500 mb-4">
               Vui lòng chọn số sao để đánh giá trải nghiệm dịch vụ của bạn (1 - 5 sao):
             </p>
-            
+
             <div className="flex justify-center gap-2 mb-6">
               {[1, 2, 3, 4, 5].map(star => (
                 <button
@@ -564,6 +567,15 @@ export default function BookingHistoryDetailPage() {
                 </button>
               ))}
             </div>
+
+            <textarea
+              className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none mb-4 ${ratingError ? "border-red-500 bg-red-50" : "border-slate-200 focus:border-blue-500 bg-slate-50"
+                }`}
+              rows={3}
+              placeholder="Chia sẻ trải nghiệm của bạn (không bắt buộc)..."
+              value={ratingDescription}
+              onChange={(e) => setRatingDescription(e.target.value)}
+            />
 
             {ratingError && (
               <p className="text-red-500 text-xs mb-4 text-center">{ratingError}</p>

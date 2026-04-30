@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import Link from "next/link";
 import { getCurrentUser, type StylistUser } from "@/lib/auth";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api";
@@ -37,6 +38,7 @@ interface Booking {
   status: string;
   total_price: number;
   note: string | null;
+  description_cancel: string | null;
   customer_name: string;
   customer_phone: string;
   store_name: string;
@@ -448,33 +450,36 @@ export default function Schedule() {
                     const serviceText = [bk.service_names, bk.combo_names].filter(Boolean).join(", ") || "Dịch vụ";
                     const isCancelled = bk.status === "cancelled";
                     return (
-                      <div
+                      <Link
                         key={bk.id}
-                        className={`bg-white dark:bg-primary-dark rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-100 dark:border-primary/50 flex items-start gap-4 transition-all hover:shadow-md ${isCancelled ? "opacity-50" : ""}`}
+                        href={`/booking/${bk.id}`}
+                        className={`block bg-white dark:bg-primary-dark rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-100 dark:border-primary/50 transition-all hover:shadow-md active:scale-[0.98] ${isCancelled ? "opacity-50" : ""}`}
                       >
-                        {/* Time */}
-                        <div className="w-16 h-16 rounded-xl bg-slate-50 dark:bg-primary/30 flex flex-col items-center justify-center shrink-0 border border-slate-200 dark:border-primary">
-                          <span className="text-sm font-black text-primary dark:text-accent-blue">{formatBookingTime(bk.start_time)}</span>
-                          <span className="text-[10px] font-bold text-slate-400">{formatDuration(bk.total_duration_minutes)}</span>
-                        </div>
-
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <h4 className={`font-bold text-primary dark:text-white truncate ${isCancelled ? "line-through text-slate-400 dark:text-slate-500" : ""}`}>
-                              {bk.customer_name || "Khách hàng"}
-                            </h4>
-                            <span className="flex items-center gap-1.5 text-xs font-bold shrink-0">
-                              <span className={`w-2 h-2 rounded-full ${statusInfo.dot}`}></span>
-                              <span className="text-slate-500 dark:text-slate-400">{statusInfo.label}</span>
-                            </span>
+                        <div className="flex items-start gap-4">
+                          {/* Time */}
+                          <div className="w-16 h-16 rounded-xl bg-slate-50 dark:bg-primary/30 flex flex-col items-center justify-center shrink-0 border border-slate-200 dark:border-primary">
+                            <span className="text-sm font-black text-primary dark:text-accent-blue">{formatBookingTime(bk.start_time)}</span>
+                            <span className="text-[10px] font-bold text-slate-400">{formatDuration(bk.total_duration_minutes)}</span>
                           </div>
-                          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium truncate">{serviceText}</p>
-                          {bk.customer_phone && (
-                            <p className="text-xs text-slate-400 dark:text-slate-500 font-medium mt-0.5">SĐT: {bk.customer_phone}</p>
-                          )}
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <h4 className={`font-bold text-primary dark:text-white truncate ${isCancelled ? "line-through text-slate-400 dark:text-slate-500" : ""}`}>
+                                {bk.customer_name || "Khách hàng"}
+                              </h4>
+                              <span className="flex items-center gap-1.5 text-xs font-bold shrink-0">
+                                <span className={`w-2 h-2 rounded-full ${statusInfo.dot}`}></span>
+                                <span className="text-slate-500 dark:text-slate-400">{statusInfo.label}</span>
+                              </span>
+                            </div>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium truncate">{serviceText}</p>
+                            {bk.customer_phone && (
+                              <p className="text-xs text-slate-400 dark:text-slate-500 font-medium mt-0.5">SĐT: {bk.customer_phone}</p>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      </Link>
                     );
                   })}
                 </div>

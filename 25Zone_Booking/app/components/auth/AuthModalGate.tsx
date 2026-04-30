@@ -22,6 +22,7 @@ export default function AuthModalGate() {
 
   const [mode, setMode] = useState<AuthMode>("login");
   const [showLoginSuccess, setShowLoginSuccess] = useState(false);
+  const [showPasswordResetSuccess, setShowPasswordResetSuccess] = useState(false);
   const open = desiredMode !== null;
 
   useEffect(() => {
@@ -50,8 +51,10 @@ export default function AuthModalGate() {
           updateUrl(next);
         }}
         onLoginSuccess={() => setShowLoginSuccess(true)}
+        onPasswordResetSuccess={() => setShowPasswordResetSuccess(true)}
       />
       {showLoginSuccess && <LoginSuccessPopup returnTo="RELOAD" />}
+      {showPasswordResetSuccess && <LoginSuccessPopup returnTo="RELOAD" message="Đổi mật khẩu thành công" />}
     </>
   );
 }

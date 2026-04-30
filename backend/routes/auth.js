@@ -1,5 +1,5 @@
 import express from "express";
-import { randomInt } from "crypto";
+import { randomInt, randomBytes } from "crypto";
 import database from "../database.js";
 import twilio from "twilio";
 import { hashPassword, comparePassword, isBcryptHash } from "../utils/password.js";
@@ -387,27 +387,20 @@ router.post("/forgot-password", async (req, res) => {
   }
 });
 
-router.post("/reset-password", async (req, res) => {
+router.post("/verify-reset-otp", async (req, res) => {
   try {
     const identifier = normalizeText(req.body?.identifier);
     const otp = normalizeText(req.body?.otp);
-    const newPassword = String(req.body?.newPassword ?? "");
 
-    if (!identifier || !otp || !newPassword) {
+    if (!identifier || !otp) {
       return res
         .status(400)
-        .json({ message: "Vui lòng nhập đủ thông tin đặt lại mật khẩu." });
-    }
-
-    if (newPassword.length < 6) {
-      return res
-        .status(400)
-        .json({ message: "Mật khẩu mới tối thiểu 6 ký tự." });
+        .json({ message: "Vui lòng nhập đầy đủ thông tin." });
     }
 
     const user = await findUserByIdentifier(identifier);
     if (!user) {
-      return res.status(400).json({ message: "OTP không hợp lệ hoặc đã hết hạn." });
+      return res.status(400).json({ message: "Mã OTP không hợp lệ." });
     }
 
     if (!user.Phone) {
@@ -428,6 +421,59 @@ router.post("/reset-password", async (req, res) => {
     } catch (err) {
       console.error("TWILIO VERIFY ERROR:", err);
       return res.status(400).json({ message: "Mã OTP không hợp lệ hoặc đã hết hạn." });
+    }
+
+    // OTP hợp lệ → tạo reset token tạm (lưu DB, hết hạn sau 10 phút)
+    const resetToken = String(randomInt(100000, 999999));
+    const tokenExpired = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+
+    await database.query(
+      `
+        UPDATE Users
+        SET Reset_otp = ?, Reset_otp_expired = ?
+        WHERE Id_user = ?
+      `,
+      [resetToken, tokenExpired, user.Id_user]
+    );
+
+    return res.json({ message: "Xác thực OTP thành công.", verified: true, resetToken });
+  } catch (error) {
+    console.error("Lỗi xác thực OTP:", error);
+    return res.status(500).json({ message: "Lỗi server khi xác thực OTP." });
+  }
+});
+
+router.post("/reset-password", async (req, res) => {
+  try {
+    const identifier = normalizeText(req.body?.identifier);
+    const resetToken = normalizeText(req.body?.resetToken);
+    const newPassword = String(req.body?.newPassword ?? "");
+
+    if (!identifier || !resetToken || !newPassword) {
+      return res
+        .status(400)
+        .json({ message: "Vui lòng nhập đủ thông tin đặt lại mật khẩu." });
+    }
+
+    if (newPassword.length < 6) {
+      return res
+        .status(400)
+        .json({ message: "Mật khẩu mới tối thiểu 6 ký tự." });
+    }
+
+    const user = await findUserByIdentifier(identifier);
+    if (!user) {
+      return res.status(400).json({ message: "Yêu cầu không hợp lệ." });
+    }
+
+    // Kiểm tra reset token trong DB thay vì gọi lại Twilio
+    if (
+      !user.Reset_otp ||
+      user.Reset_otp !== resetToken ||
+      !user.Reset_otp_expired ||
+      new Date(user.Reset_otp_expired).getTime() < Date.now()
+    ) {
+      return res.status(400).json({ message: "Phiên đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Vui lòng thử lại." });
     }
 
     const hashedPassword = await hashPassword(newPassword);

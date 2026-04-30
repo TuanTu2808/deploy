@@ -15,10 +15,11 @@ type AuthModalProps = {
   onClose: () => void;
   onModeChange: (next: AuthMode) => void;
   onLoginSuccess?: () => void;
+  onPasswordResetSuccess?: () => void;
   logoSrc?: string;
 };
 
-type ForgotStep = "request" | "otp" | "reset";
+type ForgotStep = "phone" | "otp" | "newpass";
 
 type LoginFieldErrors = {
   identifier?: string;
@@ -100,6 +101,7 @@ export default function AuthModal({
   onClose,
   onModeChange,
   onLoginSuccess,
+  onPasswordResetSuccess,
   logoSrc = "/image 2.png",
 }: AuthModalProps) {
   const { mounted, visible } = usePresence(open, 220);
@@ -123,15 +125,15 @@ export default function AuthModal({
   const [registerErrors, setRegisterErrors] = useState<RegisterFieldErrors>({});
 
   const [forgotOpen, setForgotOpen] = useState(false);
-  const [forgotStep, setForgotStep] = useState<ForgotStep>("request");
-  const [forgotIdentifier, setForgotIdentifier] = useState("");
+  const [forgotStep, setForgotStep] = useState<ForgotStep>("phone");
+  const [forgotPhone, setForgotPhone] = useState("");
   const [forgotOtp, setForgotOtp] = useState("");
   const [forgotNewPassword, setForgotNewPassword] = useState("");
   const [forgotConfirmPassword, setForgotConfirmPassword] = useState("");
   const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
   const [showForgotConfirmPassword, setShowForgotConfirmPassword] = useState(false);
-  const [authSuccessAnim, setAuthSuccessAnim] = useState(false);
   const [debugOtp, setDebugOtp] = useState("");
+  const [forgotResetToken, setForgotResetToken] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -170,6 +172,7 @@ export default function AuthModal({
     setSuccess("");
     setLoginErrors({});
     setRegisterErrors({});
+  // biome-ignore lint: reset messages on view changes
   }, [open, mode, forgotOpen, forgotStep]);
 
   useEffect(() => {
@@ -178,7 +181,8 @@ export default function AuthModal({
     setError("");
     setSuccess("");
     setForgotOpen(false);
-    setForgotStep("request");
+    setForgotStep("phone");
+    setForgotPhone("");
     setForgotOtp("");
     setForgotNewPassword("");
     setForgotConfirmPassword("");
@@ -197,11 +201,13 @@ export default function AuthModal({
 
   const resetForgotState = () => {
     setForgotOpen(false);
-    setForgotStep("request");
+    setForgotStep("phone");
+    setForgotPhone("");
     setForgotOtp("");
     setForgotNewPassword("");
     setForgotConfirmPassword("");
     setDebugOtp("");
+    setForgotResetToken("");
   };
 
   const resolveTokens = (response: Partial<AuthResponse>): AuthTokens => {
@@ -357,8 +363,13 @@ export default function AuthModal({
     setError("");
     setSuccess("");
 
-    if (!forgotIdentifier.trim()) {
-      setError("Vui lòng nhập email hoặc số điện thoại.");
+    const phone = forgotPhone.trim();
+    if (!phone) {
+      setError("Vui lòng nhập số điện thoại.");
+      return;
+    }
+    if (!isValidPhone(phone)) {
+      setError("Số điện thoại không đúng định dạng.");
       return;
     }
 
@@ -369,10 +380,10 @@ export default function AuthModal({
         debug?: { otp?: string };
       }>("/api/auth/forgot-password", {
         method: "POST",
-        body: { identifier: forgotIdentifier.trim() },
+        body: { identifier: normalizePhone(phone) },
       });
       setForgotStep("otp");
-      setSuccess(response.message || "OTP đã được gửi.");
+      setSuccess(response.message || "OTP đã được gửi về số điện thoại của bạn.");
       setDebugOtp(response.debug?.otp || "");
     } catch (err) {
       setError(errorMessage(err));
@@ -381,32 +392,47 @@ export default function AuthModal({
     }
   };
 
-  const onOtpSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const onVerifyForgotOtp = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
     setSuccess("");
 
-    if (forgotOtp.trim().length < 6) {
-      setError("Vui lòng nhập đủ mã OTP 6 số.");
+    if (!forgotOtp.trim()) {
+      setError("Vui lòng nhập mã OTP.");
       return;
     }
 
-    setForgotStep("reset");
+    try {
+      setLoading(true);
+      const result = await apiRequest<{ message: string; verified: boolean; resetToken: string }>("/api/auth/verify-reset-otp", {
+        method: "POST",
+        body: {
+          identifier: normalizePhone(forgotPhone.trim()),
+          otp: forgotOtp.trim(),
+        },
+      });
+      setForgotResetToken(result.resetToken);
+      setForgotStep("newpass");
+      setSuccess("Xác thực OTP thành công. Vui lòng nhập mật khẩu mới.");
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setLoading(false);
+    }
   };
-
 
   const onResetPassword = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
     setSuccess("");
 
-    if (
-      !forgotIdentifier.trim() ||
-      !forgotOtp.trim() ||
-      !forgotNewPassword.trim() ||
-      !forgotConfirmPassword.trim()
-    ) {
-      setError("Vui lòng nhập đầy đủ thông tin đặt lại mật khẩu.");
+    if (!forgotNewPassword.trim() || !forgotConfirmPassword.trim()) {
+      setError("Vui lòng nhập đầy đủ mật khẩu mới.");
+      return;
+    }
+
+    if (forgotNewPassword.length < 6) {
+      setError("Mật khẩu phải có ít nhất 6 ký tự.");
       return;
     }
 
@@ -420,19 +446,23 @@ export default function AuthModal({
       const response = await apiRequest<{ message: string }>("/api/auth/reset-password", {
         method: "POST",
         body: {
-          identifier: forgotIdentifier.trim(),
-          otp: forgotOtp.trim(),
+          identifier: normalizePhone(forgotPhone.trim()),
+          resetToken: forgotResetToken,
           newPassword: forgotNewPassword,
         },
       });
       setSuccess(response.message || "Đặt lại mật khẩu thành công.");
       setForgotOpen(false);
-      setForgotStep("request");
+      setForgotStep("phone");
+      setForgotPhone("");
       setForgotOtp("");
       setForgotNewPassword("");
       setForgotConfirmPassword("");
       setDebugOtp("");
+      setForgotResetToken("");
       onModeChange("login");
+      onClose();
+      if (onPasswordResetSuccess) onPasswordResetSuccess();
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -480,11 +510,11 @@ export default function AuthModal({
   );
 
   return (
-    <div className={"fixed inset-0 z-[90] " + (authSuccessAnim ? "pointer-events-none" : "")}>
+    <div className="fixed inset-0 z-[90]">
       <div
         className={
           "absolute inset-0 bg-black/45 transition-opacity duration-200 pointer-events-none " +
-          (visible && !authSuccessAnim ? "opacity-100" : "opacity-0")
+          (visible ? "opacity-100" : "opacity-0")
         }
         aria-hidden="true"
       />
@@ -500,34 +530,24 @@ export default function AuthModal({
       >
         <div
           className={
-            "bg-white shadow-2xl transition-all duration-300 " +
-            (visible ? "opacity-100 scale-100 translate-y-0 " : "opacity-0 scale-[.98] translate-y-2 ") +
-            (authSuccessAnim
-              ? "fixed top-[100px] right-4 md:right-10 w-auto max-w-[320px] rounded-xl p-4 flex items-center gap-3 border border-emerald-100 pointer-events-auto"
-              : "relative w-full max-w-[900px] rounded-none md:rounded-3xl overflow-y-auto md:overflow-hidden h-[100dvh] md:h-auto md:max-h-[92vh] grid grid-cols-1 md:grid-cols-2")
+            "relative w-full max-w-[900px] bg-white rounded-none md:rounded-3xl shadow-2xl " +
+            "overflow-y-auto md:overflow-hidden h-[100dvh] md:h-auto md:max-h-[92vh] " +
+            "grid grid-cols-1 md:grid-cols-2 transition-all duration-200 " +
+            (visible ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-[.98] translate-y-2")
           }
           onClick={(event) => event.stopPropagation()}
         >
-          {!authSuccessAnim && (
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Đóng"
-              className="absolute right-3 top-3 z-10 w-10 h-10 rounded-full bg-white/90 border border-gray-200
-                         flex items-center justify-center hover:text-accent-blue transition"
-            >
-              <i className="fa-solid fa-xmark text-[18px]" />
-            </button>
-          )};
-          {authSuccessAnim ? (
-            <div className="flex items-center gap-3 w-full">
-              <div className="w-10 h-10 shrink-0 rounded-full bg-emerald-100 flex items-center justify-center">
-                <i className="fa-solid fa-check text-xl text-emerald-600"></i>
-              </div>
-              <h2 className="text-[15px] font-bold text-[#003366] m-0">Đăng nhập thành công!</h2>
-            </div>
-          ) : mode === "login" ? (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Đóng"
+            className="absolute right-3 top-3 z-10 w-10 h-10 rounded-full bg-white/90 border border-gray-200
+                       flex items-center justify-center hover:text-accent-blue transition"
+          >
+            <i className="fa-solid fa-xmark text-[18px]" />
+          </button>
 
+          {mode === "login" ? (
             <>
               <div className="hidden md:flex">
                 <AccentPanel
@@ -541,13 +561,19 @@ export default function AuthModal({
               <div className="px-6 sm:px-10 py-7 sm:py-10 text-center">
                 <Logo />
                 <p className="text-xl font-semibold mt-2 mb-6 text-[#003366]">
-                  {forgotOpen ? "Quên mật khẩu" : "Đăng nhập"}
+                  {forgotOpen
+                    ? forgotStep === "phone"
+                      ? "Quên mật khẩu"
+                      : forgotStep === "otp"
+                        ? "Xác thực OTP"
+                        : "Đặt lại mật khẩu"
+                    : "Đăng nhập"}
                 </p>
 
                 {!forgotOpen && (
                   <form className="space-y-4" onSubmit={onSubmitLogin}>
                     <TextInput
-                      placeholder="Số điện thoại"
+                      placeholder="Email / Số điện thoại"
                       value={loginIdentifier}
                       onChange={(value) => {
                         setLoginIdentifier(value);
@@ -598,7 +624,7 @@ export default function AuthModal({
                         type="button"
                         onClick={() => {
                           setForgotOpen(true);
-                          setForgotIdentifier(loginIdentifier);
+                          setForgotPhone("");
                         }}
                         className="text-accent-blue hover:underline"
                       >
@@ -647,20 +673,26 @@ export default function AuthModal({
                   </form>
                 )}
 
-                {forgotOpen && forgotStep === "request" && (
+                {/* ── Forgot Step 1: Nhập số điện thoại ── */}
+                {forgotOpen && forgotStep === "phone" && (
                   <form className="space-y-4" onSubmit={onRequestForgotOtp}>
+                    <p className="text-sm text-gray-500 mb-2">
+                      Nhập số điện thoại đã đăng ký để nhận mã OTP
+                    </p>
                     <TextInput
                       placeholder="Số điện thoại"
-                      value={forgotIdentifier}
-                      onChange={setForgotIdentifier}
-                      autoComplete="username"
-                      right={<i className="fa-regular fa-user text-[16px]" />}
+                      value={forgotPhone}
+                      onChange={setForgotPhone}
+                      autoComplete="tel"
+                      right={<i className="fa-solid fa-phone text-[16px]" />}
                     />
                     <button
                       type="submit"
                       disabled={loading}
                       className="w-full h-[52px] bg-accent-blue text-white font-extrabold
                                rounded-full uppercase tracking-wider
+                               hover:shadow-[0_0_15px_rgba(51,177,250,.55)]
+                               hover:bg-sky-500
                                transition-all duration-300 active:scale-95 disabled:opacity-70"
                     >
                       {loading ? "Đang gửi..." : "Gửi mã OTP"}
@@ -668,31 +700,55 @@ export default function AuthModal({
                   </form>
                 )}
 
+                {/* ── Forgot Step 2: Nhập OTP xác thực ── */}
                 {forgotOpen && forgotStep === "otp" && (
-                  <form className="space-y-4" onSubmit={onOtpSubmit}>
-                    <div className="text-sm text-gray-600 mb-4">
-                      Vui lòng nhập mã OTP 6 số đã được gửi tới số điện thoại của bạn.
-                    </div>
+                  <form className="space-y-4" onSubmit={onVerifyForgotOtp}>
+                    <p className="text-sm text-gray-500 mb-2">
+                      Nhập mã OTP đã được gửi đến số <b>{forgotPhone}</b>
+                    </p>
                     <TextInput
                       placeholder="Nhập mã OTP"
                       value={forgotOtp}
-                      onChange={(val) => setForgotOtp(val.replace(/\D/g, '').slice(0, 6))}
+                      onChange={setForgotOtp}
                       right={<i className="fa-solid fa-key text-[16px]" />}
                     />
+                    {debugOtp && (
+                      <p className="text-xs text-sky-700 bg-sky-50 border border-sky-200 rounded-lg p-2">
+                        OTP debug (dev): <b>{debugOtp}</b>
+                      </p>
+                    )}
                     <button
                       type="submit"
-                      disabled={loading || forgotOtp.length < 6}
+                      disabled={loading}
                       className="w-full h-[52px] bg-accent-blue text-white font-extrabold
                                rounded-full uppercase tracking-wider
+                               hover:shadow-[0_0_15px_rgba(51,177,250,.55)]
+                               hover:bg-sky-500
                                transition-all duration-300 active:scale-95 disabled:opacity-70"
                     >
-                      Xác nhận
+                      {loading ? "Đang xác thực..." : "Xác thực OTP"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForgotStep("phone");
+                        setForgotOtp("");
+                        setError("");
+                        setSuccess("");
+                      }}
+                      className="w-full text-sm text-accent-blue hover:underline"
+                    >
+                      ← Nhập lại số điện thoại
                     </button>
                   </form>
                 )}
 
-                {forgotOpen && forgotStep === "reset" && (
+                {/* ── Forgot Step 3: Nhập mật khẩu mới ── */}
+                {forgotOpen && forgotStep === "newpass" && (
                   <form className="space-y-4" onSubmit={onResetPassword}>
+                    <p className="text-sm text-gray-500 mb-2">
+                      Nhập mật khẩu mới cho tài khoản của bạn
+                    </p>
                     <TextInput
                       type={showForgotNewPassword ? "text" : "password"}
                       placeholder="Mật khẩu mới"
@@ -741,16 +797,13 @@ export default function AuthModal({
                         </button>
                       }
                     />
-                    {debugOtp && (
-                      <p className="text-xs text-sky-700 bg-sky-50 border border-sky-200 rounded-lg p-2">
-                        OTP debug (dev): <b>{debugOtp}</b>
-                      </p>
-                    )}
                     <button
                       type="submit"
                       disabled={loading}
                       className="w-full h-[52px] bg-accent-blue text-white font-extrabold
                                rounded-full uppercase tracking-wider
+                               hover:shadow-[0_0_15px_rgba(51,177,250,.55)]
+                               hover:bg-sky-500
                                transition-all duration-300 active:scale-95 disabled:opacity-70"
                     >
                       {loading ? "Đang cập nhật..." : "Đặt lại mật khẩu"}
@@ -964,4 +1017,3 @@ export default function AuthModal({
     </div>
   );
 }
-

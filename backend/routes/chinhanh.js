@@ -1,5 +1,26 @@
 import express from "express";
+import fs from "fs";
+import path from "path";
+import multer from "multer";
 import database from "../database.js";
+
+const uploadDir = path.join(process.cwd(), "public", "image", "stores");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadDir),
+  filename: (_req, file, cb) => {
+    const safeOriginal = file.originalname.replace(/[^\w.-]/g, "_");
+    cb(null, `${Date.now()}-${safeOriginal}`);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
 
 const router = express.Router();
 
@@ -166,7 +187,7 @@ router.get("/:id", async (req, res) => {
  * =========================
  * POST /api/chinhanh
  */
-router.post("/", async (req, res) => {
+router.post("/", upload.single("Image"), async (req, res) => {
   try {
     const {
       Name_store,
@@ -180,6 +201,8 @@ router.post("/", async (req, res) => {
       Status,
     } = req.body;
 
+    const imagePath = req.file ? `/image/stores/${req.file.filename}` : "";
+
     if (!Name_store || !Address || !Province || !Ward || !Phone) {
       return res.status(400).json({
         message: "Thiếu dữ liệu bắt buộc",
@@ -189,8 +212,8 @@ router.post("/", async (req, res) => {
     const [result] = await database.query(
       `
       INSERT INTO Stores
-      (Name_store, Address, Province, Ward, Email, Phone, Opening_time, Closing_time, Status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (Name_store, Address, Province, Ward, Email, Phone, Opening_time, Closing_time, Status, Image)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         Name_store,
@@ -202,6 +225,7 @@ router.post("/", async (req, res) => {
         Opening_time ?? null,
         Closing_time ?? null,
         Number(Status ?? 1),
+        imagePath,
       ]
     );
 
@@ -221,7 +245,7 @@ router.post("/", async (req, res) => {
  * =========================
  * PUT /api/chinhanh/:id
  */
-router.put("/:id", async (req, res) => {
+router.put("/:id", upload.single("Image"), async (req, res) => {
   try {
     const storeId = Number(req.params.id);
 
@@ -243,6 +267,11 @@ router.put("/:id", async (req, res) => {
       Status,
     } = req.body;
 
+    let imagePath = req.body.Image || ""; // In case they send existing image path as string
+    if (req.file) {
+      imagePath = `/image/stores/${req.file.filename}`;
+    }
+
     if (!Name_store || !Address || !Province || !Ward || !Phone) {
       return res.status(400).json({
         message: "Thiếu dữ liệu bắt buộc",
@@ -261,7 +290,8 @@ router.put("/:id", async (req, res) => {
         Phone = ?,
         Opening_time = ?,
         Closing_time = ?,
-        Status = ?
+        Status = ?,
+        Image = ?
       WHERE Id_store = ?
       `,
       [
@@ -274,6 +304,7 @@ router.put("/:id", async (req, res) => {
         Opening_time ?? null,
         Closing_time ?? null,
         Number(Status ?? 1),
+        imagePath,
         storeId,
       ]
     );

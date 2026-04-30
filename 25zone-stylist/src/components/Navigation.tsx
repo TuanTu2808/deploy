@@ -41,7 +41,7 @@ export default function Navigation() {
   const displayName = user?.Name_user || "Stylist";
 
   const PAGE_TITLES: Record<string, string> = {
-    "/": "Ca hôm nay",
+    "/": "Lịch hẹn hôm nay",
     "/schedule": "Lịch làm việc",
     "/upload": "Tải ảnh kết quả",
     "/profile": "Tài khoản",

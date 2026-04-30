@@ -11,6 +11,7 @@ export default function AuthModalPage({ initialMode }: { initialMode: AuthMode }
   const router = useRouter();
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [showLoginSuccess, setShowLoginSuccess] = useState(false);
+  const [showPasswordResetSuccess, setShowPasswordResetSuccess] = useState(false);
 
   const close = () => {
     if (typeof window !== "undefined" && window.history.length > 1) router.back();
@@ -29,8 +30,9 @@ export default function AuthModalPage({ initialMode }: { initialMode: AuthMode }
           router.push(`/${next}`);
         }}
         onLoginSuccess={() => setShowLoginSuccess(true)}
+        onPasswordResetSuccess={() => setShowPasswordResetSuccess(true)}
       />
       {showLoginSuccess && <LoginSuccessPopup returnTo="/" />}
-    </>
+      {showPasswordResetSuccess && <LoginSuccessPopup returnTo="/" message="Đổi mật khẩu thành công" />}    </>
   );
 }

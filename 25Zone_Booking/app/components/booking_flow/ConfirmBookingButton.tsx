@@ -198,7 +198,7 @@ console.log("slotsToUpdate:", slotsToUpdate);
                  <button
                   onClick={() => {
                      setError("");
-                     router.push("/taikhoan/lichhen");
+                     router.push("/lichsudatlich");
                   }}
                   className="flex-1 bg-blue-900 text-white font-semibold py-3 rounded-xl hover:bg-blue-800 transition-colors shadow-md shadow-blue-900/20 active:scale-95 flex items-center justify-center gap-2"
                  >

@@ -14,6 +14,7 @@ interface Appointment {
   status: string;
   total_price: number;
   note: string | null;
+  description_cancel: string | null;
   customer_name: string;
   customer_phone: string;
   store_name: string;
@@ -191,8 +192,8 @@ export default function Home() {
                 {/* Time Block */}
                 <div
                   className={`w-full sm:w-28 h-20 sm:h-auto sm:min-h-[6rem] rounded-2xl flex flex-col items-center justify-center shrink-0 border ${isDone || isCancelled
-                      ? "bg-slate-50 dark:bg-primary/30 border-slate-100 dark:border-primary/50 text-slate-400 dark:text-slate-500"
-                      : "bg-blue-50 dark:bg-accent-blue/10 border-blue-100 dark:border-accent-blue/20 text-primary dark:text-accent-blue"
+                    ? "bg-slate-50 dark:bg-primary/30 border-slate-100 dark:border-primary/50 text-slate-400 dark:text-slate-500"
+                    : "bg-blue-50 dark:bg-accent-blue/10 border-blue-100 dark:border-accent-blue/20 text-primary dark:text-accent-blue"
                     }`}
                 >
                   <span className="text-2xl font-black tracking-tight">{time}</span>
@@ -205,8 +206,8 @@ export default function Home() {
                     <div>
                       <h3
                         className={`text-xl font-bold ${isDone || isCancelled
-                            ? "text-slate-400 dark:text-slate-500 line-through"
-                            : "text-primary dark:text-white"
+                          ? "text-slate-400 dark:text-slate-500 line-through"
+                          : "text-primary dark:text-white"
                           }`}
                       >
                         {apt.customer_name || "Khách hàng"}
@@ -231,15 +232,25 @@ export default function Home() {
                 {/* Action */}
                 <div className="flex items-center pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-primary/50">
                   {isUpcoming(apt.status) ? (
-                    <button className="w-full sm:w-auto px-6 py-3.5 bg-primary dark:bg-accent-blue hover:bg-primary-dark dark:hover:bg-blue-400 text-white font-bold rounded-xl transition-colors shadow-sm">
-                      Chi tiết ca
-                    </button>
+                    <Link
+                      href={`/booking/${apt.id}`}
+                      className="w-full sm:w-auto px-6 py-3.5 bg-primary dark:bg-accent-blue hover:bg-primary-dark dark:hover:bg-blue-400 text-white font-bold rounded-xl transition-colors shadow-sm text-center"
+                    >
+                      Chi tiết lịch hẹn
+                    </Link>
                   ) : apt.status === "completed" ? (
                     <Link
-                      href="/upload"
+                      href={`/booking/${apt.id}`}
                       className="w-full sm:w-auto px-6 py-3.5 bg-slate-50 dark:bg-primary hover:bg-slate-100 dark:hover:bg-primary-dark text-slate-700 dark:text-slate-200 font-bold rounded-xl transition-colors text-center border border-slate-200 dark:border-primary-dark"
                     >
-                      Tải ảnh Kết quả
+                      Xem chi tiết
+                    </Link>
+                  ) : apt.status === "cancelled" ? (
+                    <Link
+                      href={`/booking/${apt.id}`}
+                      className="w-full sm:w-auto px-5 py-3 bg-slate-50 dark:bg-primary/30 hover:bg-slate-100 dark:hover:bg-primary/50 text-slate-500 dark:text-slate-400 font-bold rounded-xl transition-colors text-center border border-slate-200 dark:border-primary/50 text-sm"
+                    >
+                      Xem chi tiết
                     </Link>
                   ) : null}
                 </div>

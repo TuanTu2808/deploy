@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 
-export function LoginSuccessPopup({ returnTo = "/" }: { returnTo?: string }) {
+export function LoginSuccessPopup({ returnTo = "/", message = "Đăng nhập thành công" }: { returnTo?: string; message?: string }) {
   const router = useRouter();
   const [visible, setVisible] = useState(false);
 
@@ -56,7 +56,7 @@ export function LoginSuccessPopup({ returnTo = "/" }: { returnTo?: string }) {
 
         <div className="flex-grow">
           <p className="text-[#27AE60] font-bold text-[15px]">
-            Đăng nhập thành công
+            {message}
           </p>
         </div>
 
