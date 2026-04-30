@@ -147,6 +147,8 @@ export default function PromotionsPage() {
   const [priceMax, setPriceMax] = useState<string>(DEFAULT_MAX);
   const [saleProducts, setSaleProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchSale, setSearchSale] = useState("");
+  const [sortBy, setSortBy] = useState("popular");
 
   const { addToCart, showPopup, popupProduct } = useCart();
   const { user } = useAuth();
@@ -168,8 +170,47 @@ export default function PromotionsPage() {
   const indexOfLast = currentPage * productsPerPage;
   const indexOfFirst = indexOfLast - productsPerPage;
 
-  const currentProducts = saleProducts.slice(indexOfFirst, indexOfLast);
-  const totalPages = Math.ceil(saleProducts.length / productsPerPage);
+  // Filter + Sort
+  const filteredProducts = useMemo(() => {
+    let result = [...saleProducts];
+
+    // Search filter
+    if (searchSale.trim()) {
+      const lowerQ = searchSale.trim().toLowerCase();
+      result = result.filter((p) =>
+        (p.Name_product || "").toLowerCase().includes(lowerQ) ||
+        (p.Category_Name || "").toLowerCase().includes(lowerQ) ||
+        (p.Brand_Name || "").toLowerCase().includes(lowerQ)
+      );
+    }
+
+    // Sort
+    switch (sortBy) {
+      case "new":
+        result.sort((a, b) => b.Id_product - a.Id_product);
+        break;
+      case "price_asc":
+        result.sort((a, b) => (a.Sale_Price || a.Price) - (b.Sale_Price || b.Price));
+        break;
+      case "price_desc":
+        result.sort((a, b) => (b.Sale_Price || b.Price) - (a.Sale_Price || a.Price));
+        break;
+      case "discount_desc":
+        result.sort((a, b) => {
+          const discA = a.Price && a.Sale_Price ? ((a.Price - a.Sale_Price) / a.Price) : 0;
+          const discB = b.Price && b.Sale_Price ? ((b.Price - b.Sale_Price) / b.Price) : 0;
+          return discB - discA;
+        });
+        break;
+      default: // popular - keep API order
+        break;
+    }
+
+    return result;
+  }, [saleProducts, searchSale, sortBy]);
+
+  const currentProducts = filteredProducts.slice(indexOfFirst, indexOfLast);
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
 
   const getVisiblePages = () => {
     if (totalPages <= 6) return Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -287,19 +328,11 @@ export default function PromotionsPage() {
                   Sản phẩm đang giảm giá
                 </h1>
                 <p className="mt-2 text-white/90 text-sm sm:text-base">
-                  Trang tĩnh kiểu listing sản phẩm sale — sau này gắn API chỉ
-                  replace data.
+                  Săn deal HOT — Giảm giá cực sốc, số lượng có hạn!
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <Link
-                  href="/products"
-                  className="inline-flex items-center gap-2 rounded-full bg-white text-[#003366] px-6 py-3 text-sm font-extrabold hover:bg-gray-100 transition"
-                >
-                  <i className="fa-solid fa-bag-shopping" />
-                  Xem tất cả
-                </Link>
                 <Link
                   href="/cart"
                   className="inline-flex items-center gap-2 rounded-full bg-white/15 border border-white/25 px-6 py-3 text-sm font-extrabold hover:bg-white/20 transition"
@@ -327,12 +360,15 @@ export default function PromotionsPage() {
                     className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm focus:outline-none"
                     placeholder="Tìm sản phẩm đang sale..."
                     type="text"
+                    value={searchSale}
+                    onChange={(e) => { setSearchSale(e.target.value); setCurrentPage(1); }}
                   />
                 </div>
 
                 <select
                   className="w-full sm:w-[220px] rounded-xl border border-gray-200 bg-white py-3 px-4 text-sm font-bold text-gray-700 focus:outline-none"
-                  defaultValue="popular"
+                  value={sortBy}
+                  onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
                 >
                   <option value="popular">Phổ biến</option>
                   <option value="new">Mới nhất</option>
@@ -384,7 +420,7 @@ export default function PromotionsPage() {
                 Sản phẩm Sale
               </h2>
               <span className="text-sm text-gray-500">
-                {saleProducts.length} sản phẩm
+                {filteredProducts.length} sản phẩm
               </span>
             </div>
 

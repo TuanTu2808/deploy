@@ -1,6 +1,5 @@
 import {
   clearAuth,
-  getCurrentAuthStorageKind,
   loadRefreshToken,
   loadToken,
   loadUser,
@@ -57,7 +56,7 @@ const requestRefreshToken = async (): Promise<AuthTokens | null> => {
   const refreshToken = loadRefreshToken();
   if (!refreshToken) return null;
 
-  const remember = getCurrentAuthStorageKind() !== "session";
+  const remember = true;
 
   const response = await fetch(apiUrl("/api/auth/refresh-token"), {
     method: "POST",

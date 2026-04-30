@@ -1,4 +1,4 @@
-﻿﻿﻿"use client";
+﻿﻿"use client";
 
 import React, { useEffect, useRef, useState } from "react";
 import { usePresence } from "../usePresence";
@@ -52,7 +52,7 @@ export function SearchDropdownDesktop({
         setPos({ top, right, width });
     };
 
-    // Debounced search API call
+    // Debounced search API call with client-side relevance filtering
     const handleSearch = React.useCallback((searchTerm: string) => {
         if (debounceTimer.current) {
             clearTimeout(debounceTimer.current);
@@ -70,14 +70,29 @@ export function SearchDropdownDesktop({
                 const response = await fetch(
                     `http://localhost:5001/api/sanpham/search?q=${encodeURIComponent(searchTerm)}`
                 );
-                const data = await response.json();
-                setSearchResults(data.slice(0, 6)); // Limit to 6 results
+                const data: Product[] = await response.json();
+
+                // Client-side re-rank: prioritize name matches for suggestions
+                const lowerQ = searchTerm.trim().toLowerCase();
+                const scored = data.map((p) => {
+                    const name = (p.Name_product || "").toLowerCase();
+                    let score = 0;
+                    if (name === lowerQ) score = 100;
+                    else if (name.startsWith(lowerQ)) score = 80;
+                    else if (name.includes(lowerQ)) score = 60;
+                    else if ((p.Category_Name || "").toLowerCase().includes(lowerQ)) score = 20;
+                    else score = 5;
+                    return { ...p, _score: score };
+                });
+
+                scored.sort((a, b) => b._score - a._score);
+                setSearchResults(scored.slice(0, 6));
                 setIsSearching(false);
             } catch (error) {
                 console.error("Lỗi tìm kiếm:", error);
                 setIsSearching(false);
             }
-        }, 300); // 300ms debounce
+        }, 300);
     }, []);
 
     useEffect(() => {

@@ -34,7 +34,7 @@ const getImageUrl = (thumbnail: any) => {
   return `http://localhost:5001${thumbnail}`;
 };
 
-function FlashSaleCard({ product }: { product: any }) {
+function FlashSaleCard({ product, onAddToCart }: { product: any; onAddToCart: (p: any) => void }) {
   const discount = Math.round(
     ((product.Price - product.Sale_Price) / product.Price) * 100,
   );
@@ -62,9 +62,22 @@ function FlashSaleCard({ product }: { product: any }) {
           <p className="line-through text-gray-400 text-[10px] sm:text-xs break-words">
             {product.Price?.toLocaleString()}đ
           </p>
-          <p className="text-red-600 font-extrabold text-sm sm:text-lg tracking-tight break-words">
-            {product.Sale_Price?.toLocaleString()}đ
-          </p>
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-red-600 font-extrabold text-sm sm:text-lg tracking-tight break-words">
+              {product.Sale_Price?.toLocaleString()}đ
+            </p>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onAddToCart(product);
+              }}
+              className="w-8 h-8 sm:w-10 sm:h-10 bg-[#003366] text-white border border-[#003366] rounded-full flex items-center justify-center hover:bg-white hover:text-[#003366] transition-colors shadow-md active:scale-95 shrink-0"
+              title="Thêm vào giỏ"
+            >
+              <i className="fa-solid fa-cart-plus text-xs sm:text-sm"></i>
+            </button>
+          </div>
         </div>
       </div>
     </Link>
@@ -173,13 +186,40 @@ function HomeNewsCard({ item }: { item: ShopNewsItem }) {
   );
 }
 
+const BANNER_SLIDES = [
+  {
+    image: "/img/banner_grooming.png",
+    title: "Chào mừng đến 25Zone",
+    subtitle: "Thế giới mỹ phẩm nam giới — Tự tin phong cách, nổi bật mỗi ngày.",
+    badge: "25ZONE SHOP",
+    badgeIcon: "fa-solid fa-star",
+    cta: "KHÁM PHÁ NGAY",
+    ctaLink: "/products",
+  },
+  {
+    image: "/img/banner_sale.png",
+    title: "Ưu đãi cực sốc",
+    subtitle: "Giảm giá lên đến 50% cho các sản phẩm chăm sóc tóc hàng đầu.",
+    badge: "FLASH SALE",
+    badgeIcon: "fa-solid fa-bolt",
+    cta: "XEM KHUYẾN MÃI",
+    ctaLink: "/promotions",
+  },
+  {
+    image: "/img/banner_barbershop.png",
+    title: "Đặt lịch cắt tóc",
+    subtitle: "Dịch vụ cắt tóc chuyên nghiệp — Đặt lịch online nhanh chóng, tiện lợi.",
+    badge: "BOOKING",
+    badgeIcon: "fa-solid fa-calendar-check",
+    cta: "ĐẶT LỊCH NGAY",
+    ctaLink: "http://localhost:3003",
+  },
+];
+
 export default function HomePage() {
-  const slides = [
-    "/img/banner1.jpg",
-    "/img/banner%20shop.png",
-    "/img/banner3.jpg",
-  ];
+  const slides = BANNER_SLIDES;
   const [index, setIndex] = useState(0);
+  const [autoPause, setAutoPause] = useState(false);
   const [homeNews, setHomeNews] = useState<ShopNewsItem[]>([]);
   const [homeNewsLoading, setHomeNewsLoading] = useState(true);
   const [flashSale, setFlashSale] = useState<any[]>([]);
@@ -191,7 +231,6 @@ export default function HomePage() {
 
   const handleBuyNow = (product: any) => {
     if (!user) {
-      // Save product so checkout page can merge it after login
       localStorage.setItem("pending_buynow", JSON.stringify({ ...product, quantity: 1 }));
       router.push("/login?returnTo=/checkout");
     } else {
@@ -264,11 +303,12 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    if (autoPause) return;
     const t = setInterval(() => {
-      setIndex((i) => (i + 1) % slides.length);
-    }, 1500);
+      setIndex((i) => (i + 1) % BANNER_SLIDES.length);
+    }, 5000);
     return () => clearInterval(t);
-  }, [slides.length]);
+  }, [autoPause]);
 
   useEffect(() => {
     let active = true;
@@ -295,32 +335,90 @@ export default function HomePage() {
 
   return (
     <main>
-      {/* ===== Slider ===== */}
+      {/* ===== Banner Slider ===== */}
       <section className="py-5">
-        <div className="relative w-[90%] max-w-[1920px] mx-auto overflow-hidden rounded-xl">
+        <div
+          className="relative w-[90%] max-w-[1920px] mx-auto overflow-hidden rounded-2xl group"
+          onMouseEnter={() => setAutoPause(true)}
+          onMouseLeave={() => setAutoPause(false)}
+        >
+          {/* Slides */}
           <div
-            className="flex transition-transform duration-700 ease-in-out"
+            className="flex transition-transform duration-700 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
             style={{ transform: `translateX(-${index * 100}%)` }}
           >
-            {slides.map((src) => (
-              <img
-                key={src}
-                src={src}
-                className="w-full flex-shrink-0"
-                alt="banner"
-              />
+            {slides.map((slide, i) => (
+              <div key={i} className="w-full flex-shrink-0 relative h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] xl:h-[700px]">
+                <img
+                  src={slide.image}
+                  className="w-full h-full object-cover"
+                  alt={slide.title}
+                />
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent" />
+                {/* Text content */}
+                <div
+                  className={
+                    "absolute inset-0 flex flex-col justify-center px-8 sm:px-14 lg:px-20 max-w-[650px] transition-all duration-700 " +
+                    (i === index ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4")
+                  }
+                >
+                  {slide.badge && (
+                    <span className="inline-flex items-center gap-2 w-fit rounded-full bg-white/15 backdrop-blur-sm border border-white/20 px-4 py-1.5 text-xs font-bold text-white mb-4">
+                      <i className={slide.badgeIcon + " text-[10px]"} />
+                      {slide.badge}
+                    </span>
+                  )}
+                  <h2 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight drop-shadow-lg">
+                    {slide.title}
+                  </h2>
+                  <p className="mt-3 text-sm sm:text-base text-white/85 leading-relaxed max-w-[480px] drop-shadow">
+                    {slide.subtitle}
+                  </p>
+                  {slide.cta && (
+                    <Link
+                      href={slide.ctaLink || "/products"}
+                      className="mt-6 w-fit inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-extrabold text-[#003366] hover:bg-[#003366] hover:text-white transition-all duration-300 shadow-lg hover:shadow-xl active:scale-95"
+                    >
+                      {slide.cta}
+                      <i className="fa-solid fa-arrow-right text-xs" />
+                    </Link>
+                  )}
+                </div>
+              </div>
             ))}
           </div>
 
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3">
+          {/* Prev / Next arrows */}
+          <button
+            type="button"
+            onClick={() => setIndex((i) => (i - 1 + slides.length) % slides.length)}
+            className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/20 backdrop-blur-md border border-white/25 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white/40 active:scale-90 z-10"
+            aria-label="Previous slide"
+          >
+            <i className="fa-solid fa-chevron-left text-sm" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setIndex((i) => (i + 1) % slides.length)}
+            className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/20 backdrop-blur-md border border-white/25 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white/40 active:scale-90 z-10"
+            aria-label="Next slide"
+          >
+            <i className="fa-solid fa-chevron-right text-sm" />
+          </button>
+
+          {/* Dots */}
+          <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 flex gap-2.5 z-10">
             {slides.map((_, i) => (
               <button
                 key={i}
                 type="button"
                 onClick={() => setIndex(i)}
                 className={
-                  "w-3 h-3 rounded-full transition " +
-                  (i === index ? "bg-[#868282]" : "bg-white/50")
+                  "rounded-full transition-all duration-500 " +
+                  (i === index
+                    ? "w-8 h-3 bg-white shadow-lg"
+                    : "w-3 h-3 bg-white/40 hover:bg-white/70")
                 }
                 aria-label={`Go to slide ${i + 1}`}
               />
@@ -330,76 +428,180 @@ export default function HomePage() {
       </section>
 
       {/* ===== Flash Sale ===== */}
-      <section className="w-full bg-[linear-gradient(90deg,#5FC3F4_0%,#A9DFF7_35%,#EAF8FB_65%)]">
+      <section className="w-full bg-[#eef7fb] py-12 lg:py-16">
         <div className="max-w-[1400px] mx-auto flex flex-col lg:flex-row items-center gap-6 lg:gap-8 px-4 sm:px-6 lg:px-10 relative">
-          <div className="w-full lg:w-[40%] relative right-0 lg:right-20">
-            <div className="rounded-3xl overflow-hidden relative">
-              <img
-                className="w-90 w-full object-cover scale-105"
-                src="/img/Rectangle%2024827.png"
-                alt=""
+          {/* UNIQUE "ĐỘC QUYỀN" Premium Left Image Area */}
+          <div className="w-full lg:w-[40%] relative right-0 lg:right-20 z-10 group mt-4 lg:mt-0">
+            {/* 3D Floating Container */}
+            <div className="rounded-[2rem] overflow-hidden relative shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-2 border-white/10 group-hover:border-cyan-400/50 transition-all duration-700 ease-out group-hover:-translate-y-2 group-hover:shadow-[0_30px_60px_rgba(0,229,255,0.3)]">
+              
+              {/* Image with Grayscale reveal effect */}
+              <img 
+                className="w-full object-cover scale-110 grayscale group-hover:grayscale-0 group-hover:scale-100 transition-all duration-[1500ms] ease-out" 
+                src="/img/Rectangle%2024827.png" 
+                alt="Flash Sale Banner" 
               />
+              
+              {/* CRT Scanline Overlay */}
+              <div className="absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(0,0,0,0.2)_2px,rgba(0,0,0,0.2)_4px)] pointer-events-none opacity-40 group-hover:opacity-20 transition-opacity duration-1000"></div>
+              
+              {/* Dark Overlay for bottom text */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-[#000a14]/50 to-transparent opacity-90 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-              <div className="absolute bottom-4 left-4 bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-bold italic">
-                LIMITED TIME OFFER! <br />
-                <span className="text-cyan-300">Jan 27 ONLY!</span>
+              {/* Aggressive Caution Tape (Top Left) */}
+              <div className="absolute top-6 -left-12 w-64 bg-yellow-400 text-black text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] py-1.5 -rotate-45 text-center shadow-[0_4px_15px_rgba(250,204,21,0.6)] z-30 border-y-2 border-black border-dashed flex justify-center">
+                <span>⚠ ĐỘC QUYỀN ⚠ FLASH SALE</span>
+              </div>
+
+              {/* Recording HUD (Top Right) */}
+              <div className="absolute top-4 right-4 text-right z-10 flex flex-col items-end">
+                <span className="text-red-500 bg-black/80 px-2 py-1 rounded text-[10px] font-black tracking-widest uppercase shadow-[0_0_10px_rgba(255,0,0,0.5)] border border-red-500/50 animate-pulse flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_5px_red]"></span> REC
+                </span>
+              </div>
+
+              {/* Cyber-HUD Badge (Bottom Left) */}
+              <div 
+                className="absolute bottom-8 left-[-10px] bg-cyan-400 text-black pl-8 pr-6 py-3 border-r-8 border-black shadow-[10px_10px_0px_rgba(0,0,0,0.8)] z-20 group-hover:translate-x-4 transition-transform duration-500"
+                style={{ clipPath: "polygon(0 0, 100% 0, 92% 100%, 0 100%)" }}
+              >
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black italic tracking-widest opacity-80 mb-0.5">
+                    // LIMITED TIME OFFER //
+                  </span>
+                  <span className="text-xl sm:text-2xl font-black italic tracking-tighter">
+                    GIẢM SỐC HÔM NAY!
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            {/* 3D Floating Element - Starburst breaking out of the container! */}
+            <div className="absolute -bottom-6 -right-6 sm:-bottom-10 sm:-right-10 w-32 h-32 sm:w-40 sm:h-40 z-30 group-hover:scale-125 group-hover:rotate-[15deg] transition-all duration-700 pointer-events-none drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
+              <svg viewBox="0 0 100 100" className="w-full h-full text-[#ff003c] fill-current animate-[spin_20s_linear_infinite_reverse]">
+                 <polygon points="50,5 61,28 86,14 74,38 98,50 74,62 86,86 61,72 50,95 39,72 14,86 26,62 2,50 26,38 14,14 39,28" stroke="#000" strokeWidth="2.5" />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center -rotate-[15deg]">
+                 <span className="text-yellow-400 font-black italic text-3xl sm:text-4xl leading-none tracking-tighter" style={{ WebkitTextStroke: "1.5px black" }}>HOT</span>
+                 <span className="text-white font-black italic text-xl sm:text-2xl leading-none tracking-tighter mt-[-4px] drop-shadow-[2px_2px_0_#000]">DEAL!</span>
               </div>
             </div>
           </div>
-
           <div className="w-full lg:w-[60%]">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
-              <div className="flex items-center gap-4 bg-[#003366] text-white px-8 py-4 rounded-2xl skew-x-[-10deg] w-fit">
-                <i className="fa-solid fa-bolt text-yellow-400 text-6xl"></i>
-                <h1 className="text-4xl font-extrabold tracking-widest skew-x-[10deg] italic">
-                  FLASH SALE
-                </h1>
+              {/* Premium Neo-Brutalist Flash Sale Title */}
+              <div className="relative group cursor-pointer w-fit mb-4 sm:mb-0">
+                {/* 3D Offset Shadow Background */}
+                <div className="absolute inset-0 bg-yellow-400 rounded-2xl skew-x-[-12deg] translate-x-1.5 translate-y-1.5 sm:translate-x-2 sm:translate-y-2 transition-transform duration-300 group-hover:translate-x-3 group-hover:translate-y-3 shadow-lg"></div>
+                
+                {/* Main Box */}
+                <div className="relative flex items-center gap-4 sm:gap-5 bg-gradient-to-r from-[#00152b] via-[#003366] to-[#004080] border border-white/20 px-8 sm:px-10 py-3.5 sm:py-4 rounded-2xl skew-x-[-12deg] overflow-hidden backdrop-blur-md">
+                  {/* Glassmorphism Shine Effect */}
+                  <div className="absolute top-0 left-[-150%] w-[150%] h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-20deg] group-hover:left-[150%] transition-all duration-1000 ease-in-out"></div>
+                  
+                  {/* Glowing Lightning Icon */}
+                  <div className="relative skew-x-[12deg] flex items-center justify-center">
+                    <div className="absolute inset-0 bg-yellow-400 blur-[20px] opacity-40 animate-pulse rounded-full"></div>
+                    <i className="fa-solid fa-bolt text-yellow-400 text-4xl sm:text-5xl relative z-10 drop-shadow-[0_0_12px_rgba(250,204,21,0.9)] group-hover:scale-110 transition-transform duration-300"></i>
+                  </div>
+                  
+                  {/* Glitch / Chromatic Aberration Text */}
+                  <h1 
+                    className="text-3xl sm:text-4xl font-black tracking-[0.15em] skew-x-[12deg] italic text-white uppercase relative z-10"
+                    style={{ textShadow: "2.5px 0px 0px #ff003c, -2.5px 0px 0px #00e5ff" }}
+                  >
+                    FLASH SALE
+                  </h1>
+                </div>
               </div>
+              {/* Ultra-Exclusive Premium Flip Clock Timer */}
+              <div className="flex items-center gap-2 sm:gap-3">
+                {/* Hours */}
+                <div className="flex flex-col items-center">
+                  <div className="w-14 h-16 sm:w-16 sm:h-20 bg-gradient-to-b from-[#002b5e] to-[#004080] rounded-[14px] flex items-center justify-center text-2xl sm:text-3xl font-black text-white shadow-[0_10px_20px_rgba(0,34,68,0.5),inset_0_2px_0_rgba(255,255,255,0.2)] border border-[#001a33] relative overflow-hidden hover:-translate-y-1 transition-transform duration-300">
+                    {/* Dark Top Flap */}
+                    <div className="absolute top-0 left-0 w-full h-1/2 bg-black/20 border-b border-black/80"></div>
+                    {/* White Flap Hinge Highlight */}
+                    <div className="absolute top-1/2 left-0 w-full h-[1px] bg-white/30 shadow-[0_1px_2px_rgba(0,0,0,0.5)]"></div>
+                    <span className="drop-shadow-[0_3px_5px_rgba(0,0,0,0.8)] relative z-10 tracking-tighter">{time.hours}</span>
+                  </div>
+                  <span className="text-[#003366] text-[10px] sm:text-xs font-black mt-2 uppercase tracking-widest drop-shadow-sm">Giờ</span>
+                </div>
+                
+                <span className="text-[#003366] font-black text-2xl sm:text-3xl animate-pulse mb-6 drop-shadow-md">:</span>
 
-              <div className="flex gap-3 text-[#003366] font-bold text-lg">
-                <span>00</span> : <span>{time.hours}</span> : <span>{time.minutes}</span> :{" "}
-                <span>{time.seconds}</span>
+                {/* Minutes */}
+                <div className="flex flex-col items-center">
+                  <div className="w-14 h-16 sm:w-16 sm:h-20 bg-gradient-to-b from-[#002b5e] to-[#004080] rounded-[14px] flex items-center justify-center text-2xl sm:text-3xl font-black text-white shadow-[0_10px_20px_rgba(0,34,68,0.5),inset_0_2px_0_rgba(255,255,255,0.2)] border border-[#001a33] relative overflow-hidden hover:-translate-y-1 transition-transform duration-300">
+                    {/* Dark Top Flap */}
+                    <div className="absolute top-0 left-0 w-full h-1/2 bg-black/20 border-b border-black/80"></div>
+                    {/* White Flap Hinge Highlight */}
+                    <div className="absolute top-1/2 left-0 w-full h-[1px] bg-white/30 shadow-[0_1px_2px_rgba(0,0,0,0.5)]"></div>
+                    <span className="drop-shadow-[0_3px_5px_rgba(0,0,0,0.8)] relative z-10 tracking-tighter">{time.minutes}</span>
+                  </div>
+                  <span className="text-[#003366] text-[10px] sm:text-xs font-black mt-2 uppercase tracking-widest drop-shadow-sm">Phút</span>
+                </div>
+                
+                <span className="text-[#003366] font-black text-2xl sm:text-3xl animate-pulse mb-6 drop-shadow-md">:</span>
+
+                {/* Seconds */}
+                <div className="flex flex-col items-center">
+                  <div className="w-14 h-16 sm:w-16 sm:h-20 bg-gradient-to-b from-[#e60000] to-[#ff3333] rounded-[14px] flex items-center justify-center text-2xl sm:text-3xl font-black text-white shadow-[0_10px_25px_rgba(204,0,0,0.6),inset_0_2px_0_rgba(255,255,255,0.3)] border border-[#990000] relative overflow-hidden hover:-translate-y-1 transition-transform duration-300">
+                    {/* Dark Top Flap */}
+                    <div className="absolute top-0 left-0 w-full h-1/2 bg-black/10 border-b border-black/60"></div>
+                    {/* White Flap Hinge Highlight */}
+                    <div className="absolute top-1/2 left-0 w-full h-[1px] bg-white/40 shadow-[0_1px_2px_rgba(0,0,0,0.5)]"></div>
+                    <span className="drop-shadow-[0_3px_5px_rgba(0,0,0,0.8)] relative z-10 tracking-tighter">{time.seconds}</span>
+                  </div>
+                  <span className="text-[#e60000] text-[10px] sm:text-xs font-black mt-2 uppercase tracking-widest drop-shadow-sm">Giây</span>
+                </div>
               </div>
             </div>
 
-            <div
-              id="flash-sale-slider"
-              className="flex gap-4 sm:gap-6 pt-2 overflow-x-auto snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-            >
-              {flashSale.map((p) => (
-                <div
-                  key={p.Id_product}
-                  className="snap-start flex-shrink-0 w-[calc(50%-8px)] sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)]"
-                >
-                  <FlashSaleCard product={p} />
-                </div>
-              ))}
+            {/* Slider Wrapper for relative arrow positioning */}
+            <div className="relative group/slider mt-2 sm:mt-4">
+              <div
+                id="flash-sale-slider"
+                className="flex gap-4 sm:gap-6 py-2 overflow-x-auto snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+              >
+                {flashSale.map((p) => (
+                  <div
+                    key={p.Id_product}
+                    className="snap-start flex-shrink-0 w-[calc(50%-8px)] sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)]"
+                  >
+                    <FlashSaleCard product={p} onAddToCart={addToCart} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Slider Navigation Arrows - Visible on Mobile! */}
+              <button
+                onClick={() => scrollSlider('left')}
+                className="flex absolute -left-2 sm:-left-6 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white shadow-[0_4px_15px_rgba(0,0,0,0.15)] border border-gray-100 items-center justify-center text-[#003366] hover:bg-gray-50 z-10 transition-colors opacity-90 sm:opacity-0 sm:group-hover/slider:opacity-100 active:scale-95"
+                aria-label="Cuộn trái"
+              >
+                <i className="fa-solid fa-chevron-left text-base sm:text-lg"></i>
+              </button>
+
+              <button
+                onClick={() => scrollSlider('right')}
+                className="flex absolute -right-2 sm:-right-6 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white shadow-[0_4px_15px_rgba(0,0,0,0.15)] border border-gray-100 items-center justify-center text-[#003366] hover:bg-gray-50 z-10 transition-colors opacity-90 sm:opacity-0 sm:group-hover/slider:opacity-100 active:scale-95"
+                aria-label="Cuộn phải"
+              >
+                <i className="fa-solid fa-chevron-right text-base sm:text-lg"></i>
+              </button>
             </div>
 
             <div className="flex justify-center mt-8 sm:mt-10">
               <Link
                 href="/promotions"
-                className="bg-white flex items-center gap-3 px-8 sm:px-10 py-4 border-2 border-[#003366] rounded-full font-bold text-[#003366] hover:bg-[#003366] hover:text-white transition"
+                className="bg-white flex items-center gap-3 px-8 sm:px-12 py-3.5 sm:py-4 border-2 border-[#003366] rounded-full font-bold text-[#003366] shadow-sm hover:shadow-md hover:-translate-y-1 hover:bg-[#003366] hover:text-white transition-all duration-300"
               >
                 XEM THÊM SẢN PHẨM
                 <i className="fa-solid fa-arrow-right"></i>
               </Link>
             </div>
           </div>
-
-          <button
-            onClick={() => scrollSlider('left')}
-            className="hidden lg:flex absolute left-[38%] top-1/2 -translate-y-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-white shadow items-center justify-center text-[#003366] hover:bg-gray-100 z-10 transition-colors"
-          >
-            <i className="fa-solid fa-chevron-left"></i>
-          </button>
-
-          <button
-            onClick={() => scrollSlider('right')}
-            className="hidden lg:flex absolute -right-10 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow items-center justify-center text-[#003366] hover:bg-gray-100 z-10 transition-colors"
-          >
-            <i className="fa-solid fa-chevron-right"></i>
-          </button>
         </div>
       </section>
 

@@ -119,6 +119,8 @@ router.get("/category/:id", async (req, res) => {
 /**
  * =========================
  * GET: Tìm kiếm sản phẩm theo tên
+ * - Fuzzy: sai chính tả / thiếu dấu vẫn tìm được
+ * - Chính xác: kết quả khớp đúng dấu xếp lên đầu
  * =========================
  */
 router.get("/search", async (req, res) => {
@@ -129,7 +131,12 @@ router.get("/search", async (req, res) => {
       return res.json([]);
     }
 
-    const searchTerm = `%${q.trim()}%`;
+    const trimmed = q.trim();
+    if (!trimmed) return res.json([]);
+
+    const searchTerm = `%${trimmed}%`;
+    const startTerm = `${trimmed}%`;
+    const wordStart = `% ${trimmed}%`;
 
     const [rows] = await database.query(
       `
@@ -140,16 +147,45 @@ router.get("/search", async (req, res) => {
         (SELECT Image_url 
          FROM Image_products 
          WHERE Id_product = p.Id_product 
-         LIMIT 1) AS Thumbnail
+         LIMIT 1) AS Thumbnail,
+        (
+          CASE 
+            WHEN BINARY LOWER(p.Name_product) = BINARY LOWER(?) THEN 10000
+            WHEN BINARY LOWER(p.Name_product) LIKE BINARY LOWER(?) THEN 8000
+            WHEN BINARY LOWER(p.Name_product) LIKE BINARY LOWER(?) THEN 6000
+            WHEN BINARY LOWER(p.Name_product) LIKE BINARY LOWER(?) THEN 4000
+            WHEN p.Name_product LIKE ? THEN 2000
+            WHEN BINARY LOWER(c.Name_category) LIKE BINARY LOWER(?) THEN 500
+            WHEN c.Name_category LIKE ? THEN 200
+            WHEN b.Name_brand LIKE ? THEN 100
+            ELSE 1
+          END
+        ) AS relevance_score
       FROM Products p
       LEFT JOIN Categories_Product c 
         ON p.Id_category_product = c.Id_category_products
       LEFT JOIN Brands b 
         ON p.Id_brand = b.Id_brand
-      WHERE p.Name_product LIKE ? OR c.Name_category LIKE ? OR b.Name_brand LIKE ?
-      ORDER BY p.Id_product DESC
+      WHERE (
+        p.Name_product LIKE ?
+        OR c.Name_category LIKE ?
+        OR b.Name_brand LIKE ?
+      )
+      ORDER BY relevance_score DESC, p.Id_product DESC
     `,
-      [searchTerm, searchTerm, searchTerm],
+      [
+        trimmed,      // SCORE: exact name (binary)
+        startTerm,    // SCORE: name starts with (binary)
+        wordStart,    // SCORE: word boundary (binary)
+        searchTerm,   // SCORE: name contains (binary)
+        searchTerm,   // SCORE: name contains (fuzzy/collation)
+        searchTerm,   // SCORE: category exact accent
+        searchTerm,   // SCORE: category fuzzy
+        searchTerm,   // SCORE: brand fuzzy
+        searchTerm,   // WHERE: name (fuzzy)
+        searchTerm,   // WHERE: category (fuzzy)
+        searchTerm,   // WHERE: brand (fuzzy)
+      ],
     );
 
     res.json(rows);
