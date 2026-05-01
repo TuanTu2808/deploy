@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "../../component/Toast";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DichVu, ComboDichVu } from "@/types/index";
@@ -255,7 +256,7 @@ export default function DichVuComboPage() {
     } catch (error) {
       console.error("Lỗi mở chi tiết dịch vụ:", error);
       setOpenDetailModal(false);
-      alert("Không thể tải chi tiết dịch vụ.");
+      toast.error("Không thể tải chi tiết dịch vụ.");
     } finally {
       setDetailLoading(false);
     }
@@ -281,7 +282,7 @@ export default function DichVuComboPage() {
     } catch (error) {
       console.error("Lỗi mở chi tiết combo:", error);
       setOpenDetailModal(false);
-      alert("Không thể tải chi tiết combo.");
+      toast.error("Không thể tải chi tiết combo.");
     } finally {
       setDetailLoading(false);
     }
@@ -307,7 +308,7 @@ export default function DichVuComboPage() {
       await fetchData();
     } catch (error) {
       console.error("Lỗi đổi trạng thái dịch vụ:", error);
-      alert(error instanceof Error ? error.message : "Không thể đổi trạng thái dịch vụ");
+      toast.error(error instanceof Error ? error.message : "Không thể đổi trạng thái dịch vụ");
     }
   };
 
@@ -331,7 +332,7 @@ export default function DichVuComboPage() {
       await fetchData();
     } catch (error) {
       console.error("Lỗi đổi trạng thái combo:", error);
-      alert(error instanceof Error ? error.message : "Không thể đổi trạng thái combo");
+      toast.error(error instanceof Error ? error.message : "Không thể đổi trạng thái combo");
     }
   };
 
@@ -348,7 +349,7 @@ export default function DichVuComboPage() {
       setOpenComboModal(true);
     } catch (error) {
       console.error("Lỗi mở form chỉnh sửa combo:", error);
-      alert("Không thể tải dữ liệu combo để chỉnh sửa.");
+      toast.error("Không thể tải dữ liệu combo để chỉnh sửa.");
     }
   };
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "./Toast";
 import { useCallback, useEffect, useState, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -204,7 +205,7 @@ export default function EditProductModal({
             onClose();
         } catch (error) {
             console.error("Sửa sản phẩm thất bại", error);
-            alert("Lỗi không thể lưu thông tin! Vui lòng thử lại.");
+            toast.error("Lỗi không thể lưu thông tin! Vui lòng thử lại.");
         }
     };
 

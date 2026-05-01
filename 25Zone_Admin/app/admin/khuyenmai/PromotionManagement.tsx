@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "../../component/Toast";
 import React, { useEffect, useMemo, useState } from "react";
 // import Link from "next/link";
 import { API_BASE, authorizedAdminFetch } from "@/app/lib/admin-auth";
@@ -275,7 +276,7 @@ export default function PromotionManagement({ mode = "all" }: PromotionManagemen
 
   const showPopup = (message: string, isError = false) => {
     const title = isError ? "Lỗi" : "Thành công";
-    window.alert(`${title}: ${message}`);
+    toast.error(`${title}: ${message}`);
   };
 
   const loadVouchers = async () => {

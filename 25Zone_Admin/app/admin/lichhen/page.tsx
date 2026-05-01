@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "../../component/Toast";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 
 import { getAdminStoreId } from "@/app/lib/admin-auth";
@@ -506,14 +507,14 @@ export default function LichHenPage() {
       if (res.ok) {
         const data = await res.json();
         setResultImages(data.images || []);
-        alert("Upload thành công!");
+        toast.success("Upload thành công!");
       } else {
         const err = await res.json();
-        alert(err.message || "Lỗi upload ảnh.");
+        toast.error(err.message || "Lỗi upload ảnh.");
       }
     } catch (error) {
       console.error(error);
-      alert("Lỗi kết nối.");
+      toast.error("Lỗi kết nối.");
     } finally {
       setUploadingImages(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -546,7 +547,7 @@ export default function LichHenPage() {
       setCombos(Array.isArray(comboData?.combos) ? comboData.combos : (Array.isArray(comboData) ? comboData : []));
     } catch (error) {
       console.error("Error fetching data:", error);
-      alert("Có lỗi xảy ra khi tải dữ liệu.");
+      toast.error("Có lỗi xảy ra khi tải dữ liệu.");
     } finally {
       setLoading(false);
     }
@@ -648,11 +649,11 @@ export default function LichHenPage() {
         window.dispatchEvent(new Event('booking_status_updated'));
       } else {
         const errorData = await res.json();
-        alert(errorData.message || "Cập nhật thất bại");
+        toast.error(errorData.message || "Cập nhật thất bại");
       }
     } catch (error) {
       console.error("Lỗi cập nhật:", error);
-      alert("Lỗi kết nối.");
+      toast.error("Lỗi kết nối.");
     }
   };
 
@@ -704,16 +705,16 @@ export default function LichHenPage() {
   const handleCreateBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newBooking.phone || !newBooking.storeId || !newBooking.stylistId || !newBooking.date || !newBooking.time) {
-      alert("Vui lòng điền đầy đủ thông tin bắt buộc.");
+      toast.error("Vui lòng điền đầy đủ thông tin bắt buộc.");
       return;
     }
     if (newBooking.serviceIds.length === 0 && newBooking.comboIds.length === 0) {
-      alert("Vui lòng chọn ít nhất 1 dịch vụ hoặc combo.");
+      toast.error("Vui lòng chọn ít nhất 1 dịch vụ hoặc combo.");
       return;
     }
 
     if (!newBookingStylists.find(s => String(s.Id_user) === String(newBooking.stylistId))) {
-      alert("Thợ cắt đã chọn không còn trống với khung giờ và thời lượng này. Vui lòng kiểm tra lại dịch vụ và thời gian.");
+      toast.error("Thợ cắt đã chọn không còn trống với khung giờ và thời lượng này. Vui lòng kiểm tra lại dịch vụ và thời gian.");
       return;
     }
 
@@ -726,7 +727,7 @@ export default function LichHenPage() {
       });
 
       if (res.ok) {
-        alert("Tạo lịch hẹn thành công!");
+        toast.success("Tạo lịch hẹn thành công!");
         setShowCreateModal(false);
         setNewBooking({
           phone: "",
@@ -742,11 +743,11 @@ export default function LichHenPage() {
         fetchData();
       } else {
         const err = await res.json();
-        alert(err.message || "Lỗi khi tạo lịch hẹn.");
+        toast.error(err.message || "Lỗi khi tạo lịch hẹn.");
       }
     } catch (error) {
       console.error(error);
-      alert("Lỗi kết nối server.");
+      toast.error("Lỗi kết nối server.");
     } finally {
       setCreateLoading(false);
     }
@@ -1481,11 +1482,11 @@ export default function LichHenPage() {
 
                     if (isRequired && !assignStylistId) {
                       setCancelError("Vui lòng chọn thợ cắt vì danh sách dịch vụ hiện tại bắt buộc phải có thợ (Cắt/Uốn/Nhuộm)!");
-                      alert("Vui lòng chọn thợ cắt vì danh sách dịch vụ hiện tại bắt buộc phải có thợ (Cắt/Uốn/Nhuộm)!");
+                      toast.error("Vui lòng chọn thợ cắt vì danh sách dịch vụ hiện tại bắt buộc phải có thợ (Cắt/Uốn/Nhuộm)!");
                       return;
                     }
                     if (confirmServiceIds.length === 0 && confirmComboIds.length === 0) {
-                      alert("Vui lòng chọn ít nhất 1 dịch vụ hoặc combo.");
+                      toast.error("Vui lòng chọn ít nhất 1 dịch vụ hoặc combo.");
                       return;
                     }
 

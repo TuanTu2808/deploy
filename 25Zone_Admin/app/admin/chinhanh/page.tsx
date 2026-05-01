@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "../../component/Toast";
 import React, { useState, useEffect } from "react";
 import { API_BASE, authorizedAdminFetch } from "@/app/lib/admin-auth";
 
@@ -235,7 +236,7 @@ export default function ChiNhanhPage() {
         closeModal();
         fetchStores();
       } else {
-         alert("Có lỗi xảy ra, vui lòng thử lại.");
+         toast.error("Có lỗi xảy ra, vui lòng thử lại.");
       }
     } catch (error) {
       console.error(error);

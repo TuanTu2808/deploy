@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "../../component/Toast";
 import { useEffect, useMemo, useState } from "react";
 import { API_BASE, authorizedAdminFetch, clearAdminSession } from "@/app/lib/admin-auth";
 
@@ -149,7 +150,7 @@ export default function QuanLyDonHang() {
         prev.map((order) => (order.Id_order === orderId ? { ...order, Status: nextStatus } : order))
       );
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Có lỗi xảy ra.");
+      toast.error(err instanceof Error ? err.message : "Có lỗi xảy ra.");
     } finally {
       setUpdatingOrderId(null);
     }

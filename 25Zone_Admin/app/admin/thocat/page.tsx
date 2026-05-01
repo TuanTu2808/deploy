@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "../../component/Toast";
 import React, { useState, useEffect } from "react";
 import { API_BASE, authorizedAdminFetch, getAdminStoreId } from "@/app/lib/admin-auth";
 
@@ -161,12 +162,12 @@ export default function StylistPage() {
       if (isWeeklySchedule) {
         const endOfWeek = getDatesOfWeek(selectedDate)[6]; // CN
         if (endOfWeek < todayStr) {
-          alert("Tuần này đã hoàn toàn đi qua, không thể xếp lịch mới.");
+          toast.error("Tuần này đã hoàn toàn đi qua, không thể xếp lịch mới.");
           return;
         }
       } else {
         if (selectedDate < todayStr) {
-          alert("Không thể thiết lập lịch mới cho quá khứ. (Chỉ cho phép sửa lịch đã có sẵn)");
+          toast.error("Không thể thiết lập lịch mới cho quá khứ. (Chỉ cho phép sửa lịch đã có sẵn)");
           return;
         }
       }
@@ -188,12 +189,12 @@ export default function StylistPage() {
         });
 
         if (res.ok) {
-          alert("Tạo/Cập nhật lịch cả tuần thành công!");
+          toast.success("Tạo/Cập nhật lịch cả tuần thành công!");
           fetchSchedule(selectedStylist.Id_user, selectedDate);
           fetchThisWeekSchedule(selectedStylist.Id_user);
         } else {
           const err = await res.json();
-          alert(`Lỗi: ${err.message}`);
+          toast.error(`Lỗi: ${err.message}`);
         }
       } else {
         if (scheduleData?.shift) {
@@ -203,12 +204,12 @@ export default function StylistPage() {
             body: JSON.stringify({ Start_time: scheduleForm.Start_time, End_time: scheduleForm.End_time })
           });
           if (res.ok) {
-            alert("Cập nhật giờ làm việc thành công!");
+            toast.success("Cập nhật giờ làm việc thành công!");
             fetchSchedule(selectedStylist.Id_user, selectedDate);
             fetchThisWeekSchedule(selectedStylist.Id_user);
           } else {
             const err = await res.json();
-            alert(`Lỗi: ${err.message}`);
+            toast.error(`Lỗi: ${err.message}`);
           }
         } else {
           const payload = {
@@ -223,18 +224,18 @@ export default function StylistPage() {
             body: JSON.stringify(payload)
           });
           if (res.ok) {
-            alert("Tạo lịch làm việc thành công!");
+            toast.success("Tạo lịch làm việc thành công!");
             fetchSchedule(selectedStylist.Id_user, selectedDate);
             fetchThisWeekSchedule(selectedStylist.Id_user);
           } else {
             const err = await res.json();
-            alert(`Lỗi: ${err.message}`);
+            toast.error(`Lỗi: ${err.message}`);
           }
         }
       }
     } catch (error) {
       console.error(error);
-      alert("Đã xảy ra lỗi hệ thống.");
+      toast.error("Đã xảy ra lỗi hệ thống.");
     }
   };
 
@@ -246,12 +247,12 @@ export default function StylistPage() {
         method: "DELETE"
       });
       if (res.ok) {
-        alert("Xóa thành công!");
+        toast.success("Xóa thành công!");
         fetchSchedule(selectedStylist.Id_user, selectedDate);
         fetchThisWeekSchedule(selectedStylist.Id_user);
       } else {
         const err = await res.json();
-        alert(`Lỗi: ${err.message}`);
+        toast.error(`Lỗi: ${err.message}`);
       }
     } catch (error) {
       console.error(error);
@@ -477,16 +478,16 @@ export default function StylistPage() {
       });
 
       if (res.ok) {
-        alert(modalMode === "create" ? "Thêm thành công!" : "Cập nhật thành công!");
+        toast.success(modalMode === "create" ? "Thêm thành công!" : "Cập nhật thành công!");
         closeModal();
         fetchStylists(); // Refresh list
       } else {
         const err = await res.json();
-        alert(`Lỗi: ${err.message || 'Xảy ra lỗi khi gửi yêu cầu'}`);
+        toast.error(`Lỗi: ${err.message || 'Xảy ra lỗi khi gửi yêu cầu'}`);
       }
     } catch (error) {
       console.error("Submit error:", error);
-      alert("Đã xảy ra lỗi khi lưu.");
+      toast.error("Đã xảy ra lỗi khi lưu.");
     }
   };
 
@@ -498,18 +499,18 @@ export default function StylistPage() {
       });
 
       if (res.ok) {
-        alert("Xóa thành công!");
+        toast.success("Xóa thành công!");
         if (selectedStylist && selectedStylist.Id_user === id) {
           setSelectedStylist(null);
         }
         fetchStylists();
       } else {
         const err = await res.json();
-        alert(`Không thể xóa: ${err.message}`);
+        toast.error(`Không thể xóa: ${err.message}`);
       }
     } catch (error) {
       console.error("Delete error:", error);
-      alert("Đã xảy ra lỗi khi xóa.");
+      toast.error("Đã xảy ra lỗi khi xóa.");
     }
   };
 

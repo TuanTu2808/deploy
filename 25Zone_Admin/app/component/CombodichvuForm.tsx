@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "./Toast";
 import { useState, useEffect, useMemo, useCallback, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { DichVu } from "@/types";
@@ -264,17 +265,17 @@ export default function ComboModal({
       const serviceIds = selectedServices.map((service) => service.Id_services);
 
       if (!name.trim()) {
-        alert("Vui lòng nhập tên combo");
+        toast.error("Vui lòng nhập tên combo");
         return;
       }
 
       if (serviceIds.length === 0) {
-        alert("Vui lòng chọn ít nhất 1 dịch vụ cho combo");
+        toast.error("Vui lòng chọn ít nhất 1 dịch vụ cho combo");
         return;
       }
 
       if (!imageFile && !imagePreview) {
-        alert("Vui lòng chọn ảnh combo");
+        toast.error("Vui lòng chọn ảnh combo");
         return;
       }
 
@@ -310,12 +311,12 @@ export default function ComboModal({
         throw new Error("Không thể lưu combo, vui lòng kiểm tra API backend");
       }
 
-      alert(isEdit ? "Cập nhật combo thành công!" : "Tạo combo thành công!");
+      toast.success(isEdit ? "Cập nhật combo thành công!" : "Tạo combo thành công!");
       await onCreated();
       onClose();
     } catch (error) {
       console.error("Lỗi submit combo:", error);
-      alert(error instanceof Error ? error.message : "Có lỗi xảy ra khi lưu combo");
+      toast.error(error instanceof Error ? error.message : "Có lỗi xảy ra khi lưu combo");
     } finally {
       setLoading(false);
     }

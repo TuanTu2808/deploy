@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "../../component/Toast";
 import { useCallback, useEffect, useState } from "react";
 import { API_BASE, authorizedAdminFetch, clearAdminSession } from "@/app/lib/admin-auth";
 
@@ -154,7 +155,7 @@ export default function DanhGiaPage() {
       if (!response.ok) throw new Error(data?.message || "Lỗi xóa phản hồi");
       await loadReviews();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Có lỗi xảy ra khi xóa.");
+      toast.error(err instanceof Error ? err.message : "Có lỗi xảy ra khi xóa.");
     } finally {
       setDeletingId(null);
     }

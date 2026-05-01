@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "./Toast";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DichVu } from "@/types"; 
@@ -120,7 +121,7 @@ const handleSubmit = async () => {
         setLoading(true);
 
         if (!form.Name || !form.Id_category || !form.Price || !form.Duration_time) {
-            alert("Vui lòng nhập đầy đủ thông tin bắt buộc");
+            toast.error("Vui lòng nhập đầy đủ thông tin bắt buộc");
             return;
         }
 
@@ -166,7 +167,7 @@ const handleSubmit = async () => {
                 }
             }
 
-            alert("Cập nhật dịch vụ thành công!");
+            toast.success("Cập nhật dịch vụ thành công!");
         } else {
             const res = await authorizedFetch(`${API_BASE}/api/dichvu`, {
                 method: "POST",
@@ -208,14 +209,14 @@ const handleSubmit = async () => {
                 }
             }
 
-            alert("Thêm dịch vụ thành công!");
+            toast.success("Thêm dịch vụ thành công!");
         }
 
         await onCreated();
         handleClose();
     } catch (error) {
         console.error("Lỗi submit dịch vụ:", error);
-        alert(error instanceof Error ? error.message : "Không thể lưu dịch vụ");
+        toast.error(error instanceof Error ? error.message : "Không thể lưu dịch vụ");
     } finally {
         setLoading(false);
     }

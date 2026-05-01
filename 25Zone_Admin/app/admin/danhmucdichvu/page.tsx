@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "../../component/Toast";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE, authorizedAdminFetch, clearAdminSession } from "@/app/lib/admin-auth";
@@ -103,7 +104,7 @@ export default function DanhMucDichVuPage() {
     const newName = prompt("Nhập tên danh mục mới:", item.Name);
     if (!newName) return;
     if (!newName.trim() || newName.trim().length < 3) {
-      alert("Tên danh mục không hợp lệ (ít nhất 3 ký tự).");
+      toast.error("Tên danh mục không hợp lệ (ít nhất 3 ký tự).");
       return;
     }
 

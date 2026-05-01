@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 
 import AdminShell from "./component/admin-shell";
+import ToastContainer from "./component/Toast";
 
 /* FONT INTER */
 const inter = Inter({
@@ -32,6 +33,7 @@ export default function RootLayout({
 
       <body className={`${inter.className} flex min-h-screen`}>
         <AdminShell>{children}</AdminShell>
+        <ToastContainer />
       </body>
     </html>
   );

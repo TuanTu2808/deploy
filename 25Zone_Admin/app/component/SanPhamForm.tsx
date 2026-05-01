@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "./Toast";
 import { useCallback, useEffect, useState, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE, authorizedAdminFetch, clearAdminSession } from "@/app/lib/admin-auth";
@@ -172,7 +173,7 @@ const handleSubmit = async () => {
     onClose();
   } catch (error) {
     console.error(error);
-    alert("Lỗi thêm sản phẩm");
+    toast.error("Lỗi thêm sản phẩm");
   }
 };
 

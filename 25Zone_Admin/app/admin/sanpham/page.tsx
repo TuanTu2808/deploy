@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "../../component/Toast";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProductAPI, Stat } from "@/types/index";
@@ -147,7 +148,7 @@ export default function ProductManagement() {
         );
       } catch (error) {
         console.error("Lỗi đổi trạng thái:", error);
-        alert("Không thể cập nhật trạng thái sản phẩm");
+        toast.error("Không thể cập nhật trạng thái sản phẩm");
       }
     },
     [authorizedFetch],
