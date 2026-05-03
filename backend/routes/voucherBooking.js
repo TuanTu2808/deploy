@@ -3,13 +3,57 @@ import database from "../database.js";
 
 const router = express.Router();
 
-// GET: Lấy tất cả voucher booking
+// ✅ Helper: Tính trạng thái voucher (is_expired, is_not_started, is_active)
+const computeVoucherStatus = (voucher) => {
+  const now = new Date();
+  const startDate = voucher.Start_date ? new Date(voucher.Start_date) : null;
+  const endDate = voucher.End_date ? new Date(voucher.End_date) : null;
+
+  let is_expired = false;
+  let is_not_started = false;
+  let is_active = false;
+
+  if (endDate && now > endDate) {
+    is_expired = true;
+  } else if (startDate && now < startDate) {
+    is_not_started = true;
+  } else if (voucher.Status === 1) {
+    is_active = true;
+  }
+
+  return { ...voucher, is_expired, is_not_started, is_active };
+};
+
+const syncExpiredBookingVoucherStatus = async () => {
+  await database.query(
+    `UPDATE vouchers_booking SET Status = 3 WHERE Status = 1 AND End_date IS NOT NULL AND End_date < NOW()`
+  );
+};
+
+// GET: Lấy tất cả voucher booking (mặc định chỉ hoạt động & chưa hết hạn)
 router.get("/", async (req, res) => {
   try {
-    const [rows] = await database.query(
-      `SELECT * FROM vouchers_booking ORDER BY Id_voucher DESC`
-    );
-    res.json(rows);
+    await syncExpiredBookingVoucherStatus();
+
+    const { admin } = req.query;
+    let queryStr = `SELECT * FROM vouchers_booking`;
+    
+    // ✅ Nếu admin=true: lấy tất cả vouchers (bao gồm Status=0 và hết hạn)
+    // ✅ Ngược lại: chỉ lấy voucher hoạt động (Status=1) và chưa hết hạn
+    if (admin !== 'true') {
+      queryStr += ` WHERE Status = 1 
+                   AND (Start_date IS NULL OR Start_date <= NOW()) 
+                   AND (End_date IS NULL OR End_date >= NOW())`;
+    }
+    
+    queryStr += ` ORDER BY Id_voucher DESC`;
+    
+    const [rows] = await database.query(queryStr);
+    
+    // ✅ Thêm trạng thái: is_expired, is_not_started, is_active
+    const vouchersWithStatus = rows.map(voucher => computeVoucherStatus(voucher));
+    
+    res.json(vouchersWithStatus);
   } catch (error) {
     console.error("Lỗi GET vouchers_booking:", error);
     res.status(500).json({ message: "Lỗi server" });
@@ -26,27 +70,24 @@ router.get("/check", async (req, res) => {
       return res.status(400).json({ message: "Mã voucher không được để trống." });
     }
 
+    await syncExpiredBookingVoucherStatus();
+
+    // ✅ CHECK: Status=1, ngày hợp lệ trong SQL
     const [rows] = await database.query(
-      `SELECT * FROM vouchers_booking WHERE Voucher_code = ? LIMIT 1`,
+      `SELECT * FROM vouchers_booking 
+       WHERE Voucher_code = ? 
+       AND Status = 1 
+       AND (Start_date IS NULL OR Start_date <= NOW()) 
+       AND (End_date IS NULL OR End_date >= NOW())
+       LIMIT 1`,
       [code]
     );
 
     if (!rows.length) {
-      return res.status(404).json({ message: "Mã voucher không tồn tại." });
+      return res.status(404).json({ message: "Mã voucher không tồn tại hoặc đã hết hạn." });
     }
 
     const voucher = rows[0];
-
-    if (Number(voucher.Status) !== 1) {
-      return res.status(400).json({ message: "Voucher hiện không khả dụng." });
-    }
-
-    const now = new Date();
-    const startDate = new Date(voucher.Start_date);
-    const endDate = new Date(voucher.End_date);
-    if (now < startDate || now > endDate) {
-      return res.status(400).json({ message: "Mã voucher đã hết hạn hoặc chưa đến hạn." });
-    }
 
     const minValue = Number(voucher.Min_order_value || 0);
     if (total < minValue) {
@@ -95,27 +136,22 @@ router.get("/check", async (req, res) => {
 router.get("/available", async (req, res) => {
   try {
     const total = Number(req.query.total ?? 0);
-    const now = new Date();
 
+    await syncExpiredBookingVoucherStatus();
+
+    // ✅ Lọc trong SQL: Status=1, ngày hợp lệ, giá tối thiểu
     const [rows] = await database.query(
-      `SELECT * FROM vouchers_booking WHERE Status = 1`
+      `SELECT * FROM vouchers_booking 
+       WHERE Status = 1 
+       AND (Start_date IS NULL OR Start_date <= NOW()) 
+       AND (End_date IS NULL OR End_date >= NOW())
+       AND (Min_order_value IS NULL OR Min_order_value <= ?)
+       ORDER BY Id_voucher DESC`,
+      [total]
     );
 
-    // lọc logic giống /check
-    const validVouchers = rows.filter((v) => {
-      const start = new Date(v.Start_date);
-      const end = new Date(v.End_date);
-
-      if (now < start || now > end) return false;
-
-      const minValue = Number(v.Min_order_value || 0);
-      if (total < minValue) return false;
-
-      return true;
-    });
-
-    // format lại cho FE dễ dùng
-    const result = validVouchers.map((v) => ({
+    // Format lại cho FE dễ dùng
+    const result = rows.map((v) => ({
       id: v.Id_voucher,
       code: v.Voucher_code,
       name: v.Name,
@@ -137,6 +173,11 @@ router.get("/available", async (req, res) => {
 router.get("/:Id", async (req, res) => {
   try {
     const { Id } = req.params;
+    await database.query(
+      `UPDATE vouchers_booking SET Status = 3 WHERE Status = 1 AND End_date IS NOT NULL AND End_date < NOW() AND Id_voucher = ?`,
+      [Id]
+    );
+
     const [rows] = await database.query(
       `SELECT * FROM vouchers_booking WHERE Id_voucher = ?`,
       [Id]
@@ -146,7 +187,9 @@ router.get("/:Id", async (req, res) => {
       return res.status(404).json({ message: "Voucher booking không tồn tại" });
     }
 
-    res.json(rows[0]);
+    // ✅ Thêm trạng thái: is_expired, is_not_started, is_active
+    const voucherWithStatus = computeVoucherStatus(rows[0]);
+    res.json(voucherWithStatus);
   } catch (error) {
     console.error("Lỗi GET voucher booking theo ID:", error);
     res.status(500).json({ message: "Lỗi server" });
@@ -192,8 +235,18 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Discount_type không hợp lệ" });
     }
 
-    const formatDate = (d) =>
-      d ? new Date(d).toISOString().slice(0, 19).replace("T", " ") : null;
+    const formatDate = (d) => {
+      if (!d) return null;
+      const date = new Date(d);
+      if (Number.isNaN(date.getTime())) return null;
+      const YYYY = date.getFullYear();
+      const MM = String(date.getMonth() + 1).padStart(2, "0");
+      const DD = String(date.getDate()).padStart(2, "0");
+      const hh = String(date.getHours()).padStart(2, "0");
+      const mm = String(date.getMinutes()).padStart(2, "0");
+      const ss = String(date.getSeconds()).padStart(2, "0");
+      return `${YYYY}-${MM}-${DD} ${hh}:${mm}:${ss}`;
+    };
 
     const startDateFormatted = formatDate(Start_date) || formatDate(new Date());
     const endDateFormatted =
@@ -274,8 +327,18 @@ router.put("/:Id", async (req, res) => {
       return res.status(400).json({ message: "Voucher_code không được để trống" });
     }
 
-    const formatDate = (d) =>
-      d ? new Date(d).toISOString().slice(0, 19).replace("T", " ") : null;
+    const formatDate = (d) => {
+      if (!d) return null;
+      const date = new Date(d);
+      if (Number.isNaN(date.getTime())) return null;
+      const YYYY = date.getFullYear();
+      const MM = String(date.getMonth() + 1).padStart(2, "0");
+      const DD = String(date.getDate()).padStart(2, "0");
+      const hh = String(date.getHours()).padStart(2, "0");
+      const mm = String(date.getMinutes()).padStart(2, "0");
+      const ss = String(date.getSeconds()).padStart(2, "0");
+      return `${YYYY}-${MM}-${DD} ${hh}:${mm}:${ss}`;
+    };
 
     await database.query(
       `UPDATE vouchers_booking
