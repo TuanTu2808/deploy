@@ -55,7 +55,7 @@ const normalizePagedPayload = <T,>(
   const totalItems = Number(parsed?.pagination?.totalItems ?? data.length);
   const totalPages = Number(
     parsed?.pagination?.totalPages ??
-      (totalItems > 0 ? Math.ceil(totalItems / Math.max(limit, 1)) : 0)
+    (totalItems > 0 ? Math.ceil(totalItems / Math.max(limit, 1)) : 0)
   );
   const page = Number(parsed?.pagination?.page || 1);
 
@@ -438,22 +438,20 @@ export default function DichVuComboPage() {
         <div className="flex h-[52px] items-center border-b border-slate-200 px-6">
           <button
             onClick={() => handleSwitchTab("dichvu")}
-            className={`h-full w-[163px] border-b-2 text-[14px] font-medium ${
-              activeTab === "dichvu"
+            className={`h-full w-[163px] border-b-2 text-[14px] font-medium ${activeTab === "dichvu"
                 ? "border-[#0B3C6D] text-[#0B3C6D]"
                 : "border-transparent text-[#94A3B8]"
-            }`}
+              }`}
           >
             Dịch vụ đơn lẻ
           </button>
 
           <button
             onClick={() => handleSwitchTab("combo")}
-            className={`h-full w-[200px] text-[14px] ${
-              activeTab === "combo"
+            className={`h-full w-[200px] text-[14px] ${activeTab === "combo"
                 ? "border-b-2 border-[#0B3C6D] text-[#0B3C6D]"
                 : "text-[#94A3B8]"
-            }`}
+              }`}
           >
             Gói Combo trọn gói
           </button>
@@ -502,17 +500,17 @@ export default function DichVuComboPage() {
                       className="text-center transition hover:bg-gray-50"
                     >
                       <td className="flex justify-center px-6 py-4">
-<img
-  src={
-    dv.Image_URL
-      ? dv.Image_URL.startsWith("http")
-        ? dv.Image_URL
-        : `${API_BASE}${dv.Image_URL}`
-      : "/no-image.png"
-  }
-  alt={dv.Name}
-  className="h-12 w-12 rounded-lg border border-slate-200 object-cover"
-/>
+                        <img
+                          src={
+                            dv.Image_URL
+                              ? dv.Image_URL.startsWith("http")
+                                ? dv.Image_URL
+                                : `${API_BASE}${dv.Image_URL}`
+                              : "/no-image.png"
+                          }
+                          alt={dv.Name}
+                          className="h-12 w-12 rounded-lg border border-slate-200 object-cover"
+                        />
                       </td>
 
                       <td className="px-6 py-4">
@@ -550,9 +548,8 @@ export default function DichVuComboPage() {
                         ></i>
 
                         <i
-                          className={`fa-regular ${
-                            dv.Status === 1 ? "fa-eye" : "fa-eye-slash"
-                          } cursor-pointer hover:text-blue-600`}
+                          className={`fa-regular ${dv.Status === 1 ? "fa-eye" : "fa-eye-slash"
+                            } cursor-pointer hover:text-blue-600`}
                           title="Đổi trạng thái"
                           onClick={() => toggleServiceStatus(dv.Id_services, dv.Status)}
                         />
@@ -614,9 +611,8 @@ export default function DichVuComboPage() {
                         onClick={() => openEditComboModal(cb.Id_combo)}
                       />
                       <i
-                        className={`fa-regular ${
-                          cb.Status === 1 ? "fa-eye" : "fa-eye-slash"
-                        } cursor-pointer hover:text-blue-600`}
+                        className={`fa-regular ${cb.Status === 1 ? "fa-eye" : "fa-eye-slash"
+                          } cursor-pointer hover:text-blue-600`}
                         onClick={() => toggleComboStatus(cb.Id_combo, cb.Status)}
                       />
                     </td>
@@ -646,11 +642,10 @@ export default function DichVuComboPage() {
                 <button
                   key={page}
                   onClick={() => handlePageChange(page)}
-                  className={`h-9 w-9 rounded-lg ${
-                    activePagination.page === page
+                  className={`h-9 w-9 rounded-lg ${activePagination.page === page
                       ? "bg-[#0B3C6D] text-white"
                       : "border border-slate-200"
-                  }`}
+                    }`}
                 >
                   {page}
                 </button>
