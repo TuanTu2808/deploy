@@ -89,7 +89,7 @@ router.get("/", async (req, res) => {
     }
 
     if (status && ALLOWED_STATUS.includes(status)) {
-      where.push("o.Status = ?");
+      where.push("LOWER(o.Status) = ?");
       params.push(status);
     }
 
