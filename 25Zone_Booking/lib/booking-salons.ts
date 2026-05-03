@@ -90,18 +90,27 @@ const getMockCoordinates = (province: string, id: number) => {
   let baseLat = 10.762622; // Default HCMC
   let baseLng = 106.660172;
   
-  if (p.includes("hà nội")) {
+  if (p.includes("hà nội") || p.includes("ha noi")) {
     baseLat = 21.028511;
     baseLng = 105.804817;
   } else if (p.includes("đà nẵng") || p.includes("da nang")) {
     baseLat = 16.054407;
     baseLng = 108.202167;
-  } else if (p.includes("cần thơ")) {
+  } else if (p.includes("cần thơ") || p.includes("can tho")) {
     baseLat = 10.045162;
     baseLng = 105.746854;
-  } else if (p.includes("hải phòng")) {
+  } else if (p.includes("hải phòng") || p.includes("hai phong")) {
     baseLat = 20.844912;
     baseLng = 106.688084;
+  } else if (p.includes("đắk lắk") || p.includes("dak lak")) {
+    baseLat = 12.6761;
+    baseLng = 108.0383; // Buôn Ma Thuột
+  } else if (p.includes("đồng nai") || p.includes("dong nai")) {
+    baseLat = 10.9458;
+    baseLng = 106.8242; // Biên Hòa
+  } else if (p.includes("bình dương") || p.includes("binh duong")) {
+    baseLat = 10.9804;
+    baseLng = 106.6519; // Thủ Dầu Một
   }
 
   // Add a small pseudo-random offset based on ID so they don't all stack up

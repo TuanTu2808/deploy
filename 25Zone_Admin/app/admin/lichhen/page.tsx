@@ -647,6 +647,12 @@ export default function LichHenPage() {
         );
         await fetchData(); // Đợi load xong data từ server để bảo đảm đồng bộ 100%
         window.dispatchEvent(new Event('booking_status_updated'));
+        
+        if (newStatus === "cancelled") {
+          toast.error("Đã huỷ lịch hẹn thành công");
+        } else {
+          toast.success("Cập nhật thành công");
+        }
       } else {
         const errorData = await res.json();
         toast.error(errorData.message || "Cập nhật thất bại");

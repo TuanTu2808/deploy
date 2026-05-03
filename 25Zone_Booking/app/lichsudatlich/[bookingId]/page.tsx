@@ -88,6 +88,7 @@ export default function BookingHistoryDetailPage() {
   const [error, setError] = useState("");
 
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showHotlineModal, setShowHotlineModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [canceling, setCanceling] = useState(false);
   const [cancelErrorStr, setCancelErrorStr] = useState("");
@@ -153,6 +154,19 @@ export default function BookingHistoryDetailPage() {
     // 15 mins = 900000 ms
     return (startTime - now) > 900000;
   }, [booking]);
+
+  const canShowCancelButton = useMemo(() => {
+    if (!booking) return false;
+    return booking.Status === "pending" || booking.Status === "confirmed";
+  }, [booking]);
+
+  const handleCancelClick = () => {
+    if (canCancel) {
+      setShowCancelModal(true);
+    } else {
+      setShowHotlineModal(true);
+    }
+  };
 
   const handleCancelBooking = async () => {
     if (!cancelReason.trim()) {
@@ -316,9 +330,9 @@ export default function BookingHistoryDetailPage() {
                     </div>
 
                     <div className="flex gap-2">
-                      {canCancel && (
+                      {canShowCancelButton && (
                         <button
-                          onClick={() => setShowCancelModal(true)}
+                          onClick={handleCancelClick}
                           className="inline-flex items-center justify-center rounded-xl bg-red-50 text-red-600 px-4 py-2 text-sm font-bold hover:bg-red-100 transition"
                         >
                           <i className="fa-solid fa-ban mr-2"></i>
@@ -541,6 +555,31 @@ export default function BookingHistoryDetailPage() {
                 className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 transition disabled:opacity-50"
               >
                 {canceling ? "Đang xử lý..." : "Xác nhận hủy"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* HOTLINE MODAL */}
+      {showHotlineModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl p-6 animate-in fade-in zoom-in duration-200">
+            <div className="text-center mb-4">
+              <div className="mx-auto flex flex-col items-center justify-center h-16 w-16 rounded-full bg-orange-50 text-orange-500 mb-4">
+                <i className="fa-solid fa-phone-volume text-2xl"></i>
+              </div>
+              <h3 className="font-bold text-[#0F172A] text-lg mb-2">Liên hệ hỗ trợ</h3>
+              <p className="text-sm text-slate-500">
+                Chỉ còn chưa đầy 15 phút là đến giờ hẹn hoặc giờ hẹn đã bắt đầu. Để huỷ lịch, vui lòng gọi điện thoại theo hotline <strong className="text-orange-600 text-base">1900.27.27.03</strong> để được nhân viên hỗ trợ huỷ lịch.
+              </p>
+            </div>
+
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={() => setShowHotlineModal(false)}
+                className="px-8 py-2.5 rounded-xl text-sm font-bold text-white bg-orange-500 hover:bg-orange-600 transition shadow-md shadow-orange-500/20"
+              >
+                Xác nhận
               </button>
             </div>
           </div>

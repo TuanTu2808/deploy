@@ -35,6 +35,7 @@ import { requireAdminAuth } from "./middleware/auth.js";
 import { ensureAuthSchema, ensureComboSchema } from "./utils/schema.js";
 import database from "./database.js";
 import { startBookingContentWatcher } from "./utils/realtime.js";
+import { startAutoCancelCron } from "./utils/cron.js";
 import OTPRoutes from "./routes/otp.js"
 
 const app = express();
@@ -82,6 +83,7 @@ const startServer = async () => {
     await ensureAuthSchema();
     await ensureComboSchema();
     startBookingContentWatcher(database);
+    startAutoCancelCron();
     app.listen(port, () => {
       console.log(`Backend chạy tại http://localhost:${port}`);
     });
