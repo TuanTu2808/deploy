@@ -56,6 +56,9 @@ type VoucherType = {
   Max_discount: number | null;
   Start_date: string | null;
   End_date: string | null;
+  is_expired: boolean;
+  is_not_started: boolean;
+  is_active: boolean;
 };
 
 const tabs = ["Tất cả", "Đang chạy", "Sắp tới", "Đã kết thúc"];
@@ -121,23 +124,37 @@ const formatDuration = (
   return "Vô thời hạn";
 };
 
-const mapVoucherToCampaign = (voucher: VoucherType): CampaignType => ({
-  Id_voucher: voucher.Id_voucher,
-  code: voucher.Voucher_Coder || "",
-  codeTone: getCodeTone(voucher.Voucher_Coder || ""),
-  name: voucher.Name || "",
-  description: voucher.Description || "",
-  discount:
-    voucher.Discount_type === "percent"
-      ? `${voucher.Discount_value || 0}%`
-      : `${formatCurrency(voucher.Discount_value)} đ`,
-  usage: `Min ${formatCurrency(voucher.Min_order_value)} đ`,
-  type: voucher.Discount_type === "percent" ? "Giảm giá %" : "Giảm giá cố định",
-  duration: formatDuration(voucher.Start_date, voucher.End_date),
-  status: getStatusLabel(voucher.Status ?? 0),
-  statusTone: getStatusTone(voucher.Status ?? 0),
-  raw: voucher,
-});
+const mapVoucherToCampaign = (voucher: VoucherType): CampaignType => {
+  // Tính toán status dựa trên trạng thái thực tế
+  let statusNum = voucher.Status;
+  if (voucher.is_expired) {
+    statusNum = 3; // Đã kết thúc
+  } else if (voucher.is_not_started) {
+    statusNum = 2; // Sắp tới
+  } else if (voucher.is_active) {
+    statusNum = 1; // Đang hoạt động
+  } else {
+    statusNum = 0; // Đã ẩn
+  }
+
+  return {
+    Id_voucher: voucher.Id_voucher,
+    code: voucher.Voucher_Coder || "",
+    codeTone: getCodeTone(voucher.Voucher_Coder || ""),
+    name: voucher.Name || "",
+    description: voucher.Description || "",
+    discount:
+      voucher.Discount_type === "percent"
+        ? `${voucher.Discount_value || 0}%`
+        : `${formatCurrency(voucher.Discount_value)} đ`,
+    usage: `Min ${formatCurrency(voucher.Min_order_value)} đ`,
+    type: voucher.Discount_type === "percent" ? "Giảm giá %" : "Giảm giá cố định",
+    duration: formatDuration(voucher.Start_date, voucher.End_date),
+    status: getStatusLabel(statusNum),
+    statusTone: getStatusTone(statusNum),
+    raw: voucher,
+  };
+};
   const normalizeBookingVoucherStatus = (status: BookingVoucherType["Status"]): number => {
   if (status === null || status === undefined) return 0;
   if (typeof status === "number" && !Number.isNaN(status)) return status;
@@ -151,7 +168,15 @@ const mapVoucherToCampaign = (voucher: VoucherType): CampaignType => ({
 };
 
 const mapBookingVoucherToCampaign = (voucher: BookingVoucherType): CampaignType => {
-    const statusText = normalizeBookingVoucherStatus(voucher.Status);
+    let statusNum = normalizeBookingVoucherStatus(voucher.Status);
+    if (voucher.is_expired) {
+      statusNum = 3;
+    } else if (voucher.is_not_started) {
+      statusNum = 2;
+    } else if (voucher.is_active) {
+      statusNum = 1;
+    }
+
     return {
       Id_voucher: voucher.Id_voucher ?? voucher.id_voucher ?? 0,
       code: voucher.Voucher_code || "",
@@ -165,8 +190,8 @@ const mapBookingVoucherToCampaign = (voucher: BookingVoucherType): CampaignType 
       usage: `Min ${formatCurrency(voucher.Min_order_value)} đ`,
       type: voucher.Discount_type === "percent" ? "Giảm giá %" : "Giảm giá cố định",
       duration: formatDuration(voucher.Start_date, voucher.End_date),
-      status: getStatusLabel(statusText),
-      statusTone: getStatusTone(statusText),
+      status: getStatusLabel(statusNum),
+      statusTone: getStatusTone(statusNum),
       raw: voucher,
     };
   };type FormData = {
@@ -195,6 +220,9 @@ type BookingVoucherType = {
   Max_discount_amount?: number | null;
   Start_date?: string | null;
   End_date?: string | null;
+  is_expired?: boolean;
+  is_not_started?: boolean;
+  is_active?: boolean;
 };
 
 type FormFieldValue = string | number | null;
@@ -283,7 +311,7 @@ export default function PromotionManagement({ mode = "all" }: PromotionManagemen
   try {
     setLoading(true);
 
-    const res = await authorizedAdminFetch(`${API_BASE}/api/voucher`);
+    const res = await authorizedAdminFetch(`${API_BASE}/api/voucher?admin=true`);
     const data = await parseJsonResponse(res);
 
     if (!res.ok) {
@@ -305,7 +333,7 @@ export default function PromotionManagement({ mode = "all" }: PromotionManagemen
 const loadBookingVouchers = async () => {
   try {
     setLoading(true);
-    const res = await authorizedAdminFetch(`${API_BASE}/api/voucherbooking`);
+    const res = await authorizedAdminFetch(`${API_BASE}/api/voucherbooking?admin=true`);
     const data = await parseJsonResponse(res);
 
     if (!res.ok) {
