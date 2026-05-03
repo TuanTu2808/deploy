@@ -3,6 +3,33 @@ import database from "../database.js";
 
 const router = express.Router();
 
+// ✅ Helper: Tính trạng thái voucher (is_expired, is_not_started, is_active)
+const computeVoucherStatus = (voucher) => {
+  const now = new Date();
+  const startDate = voucher.Start_date ? new Date(voucher.Start_date) : null;
+  const endDate = voucher.End_date ? new Date(voucher.End_date) : null;
+
+  let is_expired = false;
+  let is_not_started = false;
+  let is_active = false;
+
+  if (endDate && now > endDate) {
+    is_expired = true;
+  } else if (startDate && now < startDate) {
+    is_not_started = true;
+  } else if (voucher.Status === 1) {
+    is_active = true;
+  }
+
+  return { ...voucher, is_expired, is_not_started, is_active };
+};
+
+const syncExpiredVoucherStatus = async () => {
+  await database.query(
+    `UPDATE vouchers_product SET Status = 3 WHERE Status = 1 AND End_date IS NOT NULL AND End_date < NOW()`
+  );
+};
+
 // POST: Áp dụng voucher
 router.post("/apply", async (req, res) => {
   try {
@@ -12,8 +39,15 @@ router.post("/apply", async (req, res) => {
       return res.status(400).json({ message: "Vui lòng nhập mã voucher" });
     }
 
+    await syncExpiredVoucherStatus();
+
+    // ✅ CHECK: Status=1 AND ngày hợp lệ trong SQL
     const [rows] = await database.query(
-      `SELECT * FROM vouchers_product WHERE Voucher_Coder = ? AND Status = 1`,
+      `SELECT * FROM vouchers_product 
+       WHERE Voucher_Coder = ? 
+       AND Status = 1 
+       AND (Start_date IS NULL OR Start_date <= NOW()) 
+       AND (End_date IS NULL OR End_date >= NOW())`,
       [code]
     );
 
@@ -26,15 +60,6 @@ router.post("/apply", async (req, res) => {
     // Check min order value
     if (voucher.Min_order_value && cart_total < voucher.Min_order_value) {
       return res.status(400).json({ message: `Đơn hàng tối thiểu phải từ ${voucher.Min_order_value.toLocaleString()}đ` });
-    }
-
-    // Check expiration
-    if (voucher.Start_date && new Date(voucher.Start_date) > new Date()) {
-      return res.status(400).json({ message: "Voucher chưa tới ngày sử dụng" });
-    }
-    
-    if (voucher.End_date && new Date(voucher.End_date) < new Date()) {
-      return res.status(400).json({ message: "Voucher đã hết hạn" });
     }
 
     // Calculate discount
@@ -65,18 +90,25 @@ router.post("/apply", async (req, res) => {
 // GET: Lấy tất cả voucher
 router.get("/", async (req, res) => {
   try {
-    const { active } = req.query;
-    let queryArgs = [];
+    await syncExpiredVoucherStatus();
+
+    const { admin } = req.query;
     let queryStr = `SELECT * FROM vouchers_product`;
     
-    if (active === 'true') {
+    // ✅ Nếu admin=true: lấy tất cả vouchers (bao gồm Status=0 và hết hạn)
+    // ✅ Ngược lại: chỉ lấy voucher hoạt động (Status=1) và chưa hết hạn
+    if (admin !== 'true') {
       queryStr += ` WHERE Status = 1 AND (Start_date IS NULL OR Start_date <= NOW()) AND (End_date IS NULL OR End_date >= NOW())`;
     }
     
     queryStr += ` ORDER BY id_voucher DESC`;
     
-    const [rows] = await database.query(queryStr, queryArgs);
-    res.json(rows);
+    const [rows] = await database.query(queryStr);
+    
+    // ✅ Thêm trạng thái: is_expired, is_not_started, is_active
+    const vouchersWithStatus = rows.map(voucher => computeVoucherStatus(voucher));
+    
+    res.json(vouchersWithStatus);
   } catch (error) {
     console.error("Lỗi GET vouchers:", error);
     res.status(500).json({ message: "Lỗi server" });
@@ -87,6 +119,11 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
+    await database.query(
+      `UPDATE vouchers_product SET Status = 3 WHERE Status = 1 AND End_date IS NOT NULL AND End_date < NOW() AND id_voucher = ?`,
+      [id],
+    );
+
     const [rows] = await database.query(
       `SELECT * FROM vouchers_product WHERE id_voucher = ?`,
       [id],
@@ -96,7 +133,9 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ message: "Voucher không tồn tại" });
     }
 
-    res.json(rows[0]);
+    // ✅ Thêm trạng thái: is_expired, is_not_started, is_active
+    const voucherWithStatus = computeVoucherStatus(rows[0]);
+    res.json(voucherWithStatus);
   } catch (error) {
     console.error("Lỗi GET voucher theo ID:", error);
     res.status(500).json({ message: "Lỗi server" });
@@ -141,9 +180,19 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Discount_type không hợp lệ" });
     }
 
-    // ✅ FIX 4: Format datetime cho MySQL
-    const formatDate = (d) =>
-      d ? new Date(d).toISOString().slice(0, 19).replace("T", " ") : null;
+    // ✅ FIX 4: Format datetime theo giờ local để lưu đúng MySQL DATETIME
+    const formatDate = (d) => {
+      if (!d) return null;
+      const date = new Date(d);
+      if (Number.isNaN(date.getTime())) return null;
+      const YYYY = date.getFullYear();
+      const MM = String(date.getMonth() + 1).padStart(2, "0");
+      const DD = String(date.getDate()).padStart(2, "0");
+      const hh = String(date.getHours()).padStart(2, "0");
+      const mm = String(date.getMinutes()).padStart(2, "0");
+      const ss = String(date.getSeconds()).padStart(2, "0");
+      return `${YYYY}-${MM}-${DD} ${hh}:${mm}:${ss}`;
+    };
 
     Start_date = formatDate(Start_date) || formatDate(new Date());
     End_date =
@@ -229,8 +278,18 @@ router.put("/:id", async (req, res) => {
       }
     }
 
-    const formatDate = (d) =>
-      d ? new Date(d).toISOString().slice(0, 19).replace("T", " ") : null;
+    const formatDate = (d) => {
+      if (!d) return null;
+      const date = new Date(d);
+      if (Number.isNaN(date.getTime())) return null;
+      const YYYY = date.getFullYear();
+      const MM = String(date.getMonth() + 1).padStart(2, "0");
+      const DD = String(date.getDate()).padStart(2, "0");
+      const hh = String(date.getHours()).padStart(2, "0");
+      const mm = String(date.getMinutes()).padStart(2, "0");
+      const ss = String(date.getSeconds()).padStart(2, "0");
+      return `${YYYY}-${MM}-${DD} ${hh}:${mm}:${ss}`;
+    };
 
     Start_date = formatDate(Start_date);
     End_date = formatDate(End_date);
