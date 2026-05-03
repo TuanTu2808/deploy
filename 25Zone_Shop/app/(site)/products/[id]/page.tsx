@@ -26,7 +26,7 @@ interface Comment {
   Content: string;
   Created_at: string;
   Id_user: number;
-  rating: number;
+  rating?: number;
   user_name?: string;
 }
 
@@ -516,7 +516,7 @@ export default function ProductDetailPage() {
               <div className="text-6xl font-extrabold text-yellow-400 mb-3">
                 {comments.length > 0
                   ? (
-                    comments.reduce((sum, c) => sum + c.rating, 0) /
+                    comments.reduce((sum, c) => sum + (c.rating || 5), 0) /
                     comments.length
                   ).toFixed(1)
                   : "0"}
@@ -527,7 +527,7 @@ export default function ProductDetailPage() {
                     key={i}
                     className={`fa-${i <
                       Math.round(
-                        comments.reduce((sum, c) => sum + c.rating, 0) /
+                        comments.reduce((sum, c) => sum + (c.rating || 5), 0) /
                         comments.length || 0,
                       )
                       ? "solid"
@@ -543,27 +543,23 @@ export default function ProductDetailPage() {
 
             {/* Middle: Rating bars */}
             <div className="lg:col-span-3">
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {[5, 4, 3, 2, 1].map((stars) => {
-                  const count = comments.filter(
-                    (c) => c.rating === stars,
-                  ).length;
-                  const percentage =
-                    comments.length > 0 ? (count / comments.length) * 100 : 0;
+                  const count = comments.filter((c) => c.rating === stars).length;
+                  const percentage = comments.length > 0 ? (count / comments.length) * 100 : 0;
                   return (
                     <div key={stars} className="flex items-center gap-2">
                       <i className="fa-solid fa-star text-yellow-400 text-sm"></i>
                       <span className="w-8 text-right text-xs text-gray-600">
                         {stars}
                       </span>
-                      <div className="flex-1 h-1.5 bg-gray-300 rounded-full overflow-hidden">
+                      <div className="flex-1 h-2 bg-yellow-100 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-blue-600 transition-all"
+                          className="h-full bg-yellow-400 transition-all"
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
-                      <span className="w-6 text-right text-xs text-gray-600">
-                        {count}
+                      <span className="w-8 text-right text-xs text-gray-600">
                       </span>
                     </div>
                   );
@@ -586,13 +582,16 @@ export default function ProductDetailPage() {
                   setCheckingPurchase(true);
                   try {
                     const authToken = token || loadToken();
-                    const ordersRes = await fetch("http://localhost:5001/api/orders/me?status=completed", {
+                    console.log("Token:", authToken);
+                    const ordersRes = await fetch("http://localhost:5001/api/orders/me", {
                       headers: { Authorization: `Bearer ${authToken}` },
                     });
                     
+                    console.log("Orders response status:", ordersRes.status);
                     if (ordersRes.ok) {
                       const data = await ordersRes.json();
                       const orders = data.orders || [];
+                      console.log("Orders found:", orders.length, orders);
                       
                       let hasPurchased = false;
                       
@@ -602,7 +601,8 @@ export default function ProductDetailPage() {
                         });
                         if (detailRes.ok) {
                           const detail = await detailRes.json();
-                          if (detail.items && detail.items.some((item: any) => String(item.Id_product) === String(id))) {
+                          console.log(`Order ${order.Id_order} items:`, detail.order?.items);
+                          if (detail.order?.items && detail.order.items.some((item: any) => String(item.Id_product) === String(id))) {
                             hasPurchased = true;
                             break;
                           }
@@ -614,6 +614,8 @@ export default function ProductDetailPage() {
                         setCheckingPurchase(false);
                         return;
                       }
+                    } else {
+                      console.error("Orders API error:", await ordersRes.text());
                     }
                   } catch (error) {
                     console.error("Lỗi kiểm tra mua hàng:", error);
@@ -643,7 +645,6 @@ export default function ProductDetailPage() {
                   key={comment.id_product_comment}
                   className="border-b border-gray-300 pb-4"
                 >
-                  {/* User info & rating */}
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <p className="font-bold text-gray-900">
@@ -653,7 +654,7 @@ export default function ProductDetailPage() {
                         {Array.from({ length: 5 }).map((_, i) => (
                           <i
                             key={i}
-                            className={`fa-${i < comment.rating ? "solid" : "regular"} fa-star text-yellow-400 text-xs`}
+                            className={`fa-${i < (comment.rating || 5) ? "solid" : "regular"} fa-star text-yellow-400 text-xs`}
                           />
                         ))}
                       </div>
