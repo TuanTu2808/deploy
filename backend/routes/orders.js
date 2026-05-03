@@ -152,7 +152,7 @@ router.get("/me", requireAuth, async (req, res) => {
     const params = [userId];
 
     if (status && ALLOWED_STATUS.includes(status)) {
-      query += " AND o.Status = ?";
+      query += " AND LOWER(o.Status) = ?";
       params.push(status);
     }
 
