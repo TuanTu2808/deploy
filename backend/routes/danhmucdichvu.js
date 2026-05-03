@@ -16,11 +16,12 @@ router.get("/", async (req, res) => {
       `SELECT 
         c.Id_category_service,
         c.Name,
+        c.Image,
         c.Is_active,
         COUNT(s.Id_services) as total_services
        FROM Categories_service c
-       LEFT JOIN services s ON c.Id_category_service = s.Id_category_service
-       GROUP BY c.Id_category_service, c.Name, c.Is_active
+       LEFT JOIN Services s ON c.Id_category_service = s.Id_category_service
+       GROUP BY c.Id_category_service, c.Name, c.Image, c.Is_active
        ORDER BY c.Id_category_service DESC`
     );
 
@@ -40,15 +41,15 @@ router.get("/", async (req, res) => {
  * =========================
  */
 router.post("/", async (req, res) => {
-  const { Name } = req.body;
+  const { Name, Image } = req.body;
   if (!Name || Name.trim().length < 3) {
     return res.status(400).json({ error: "Tên danh mục không hợp lệ (ít nhất 3 ký tự)." });
   }
 
   try {
     const [result] = await database.query(
-      "INSERT INTO Categories_service (Name, Is_active) VALUES (?, 1)",
-      [Name.trim()]
+      "INSERT INTO Categories_service (Name, Image, Is_active) VALUES (?, ?, 1)",
+      [Name.trim(), Image || null]
     );
     return res.status(201).json({ message: "Thêm thành công", id: result.insertId });
   } catch (error) {
@@ -64,17 +65,25 @@ router.post("/", async (req, res) => {
  */
 router.put("/:id", async (req, res) => {
   const { id } = req.params;
-  const { Name } = req.body;
+  const { Name, Image } = req.body;
 
   if (!Name || Name.trim().length < 3) {
     return res.status(400).json({ error: "Tên danh mục không hợp lệ (ít nhất 3 ký tự)." });
   }
 
   try {
-    const [result] = await database.query(
-      "UPDATE Categories_service SET Name = ? WHERE Id_category_service = ?",
-      [Name.trim(), id]
-    );
+    let query = "UPDATE Categories_service SET Name = ?";
+    let params = [Name.trim()];
+
+    if (Image !== undefined) {
+      query += ", Image = ?";
+      params.push(Image || null);
+    }
+
+    query += " WHERE Id_category_service = ?";
+    params.push(id);
+
+    const [result] = await database.query(query, params);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: "Không tìm thấy danh mục" });

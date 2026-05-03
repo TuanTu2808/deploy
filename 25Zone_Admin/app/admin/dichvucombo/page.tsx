@@ -502,11 +502,17 @@ export default function DichVuComboPage() {
                       className="text-center transition hover:bg-gray-50"
                     >
                       <td className="flex justify-center px-6 py-4">
-                        <img
-                          src={dv.Image_URL ? `${API_BASE}${dv.Image_URL}` : "/no-image.png"}
-                          alt={dv.Name}
-                          className="h-12 w-12 rounded-lg border border-slate-200 object-cover"
-                        />
+<img
+  src={
+    dv.Image_URL
+      ? dv.Image_URL.startsWith("http")
+        ? dv.Image_URL
+        : `${API_BASE}${dv.Image_URL}`
+      : "/no-image.png"
+  }
+  alt={dv.Name}
+  className="h-12 w-12 rounded-lg border border-slate-200 object-cover"
+/>
                       </td>
 
                       <td className="px-6 py-4">
