@@ -127,7 +127,7 @@ export default function TimeSelectionStep({
         setIsChecking(true);
         const apiBase =
           process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ||
-          "http://localhost:5001";
+          "https://api.25zone.io.vn";
         const res = await fetch(
           `${apiBase}/api/lichlamviec?userId=${selection.stylist.id}&date=${selection.date}`,
         );

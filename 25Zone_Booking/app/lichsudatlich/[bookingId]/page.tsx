@@ -487,7 +487,7 @@ export default function BookingHistoryDetailPage() {
                               {booking.resultImages.map((img, idx) => {
                                 const imgSrc = img.startsWith('http') || img.startsWith('blob') || img.startsWith('data')
                                   ? img
-                                  : `http://localhost:5001${img.startsWith('/') ? '' : '/'}${img}`;
+                                  : `https://api.25zone.io.vn${img.startsWith('/') ? '' : '/'}${img}`;
                                 return (
                                   <div key={idx} className="aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-50 relative group">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -138,7 +138,7 @@ export default function BookingHistoryPage() {
       let isAvailable = false;
 
       if (stylistId) {
-        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "http://localhost:5001";
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "https://api.25zone.io.vn";
         const availRes = await fetch(`${apiBase}/api/lichlamviec?userId=${stylistId}&date=${todayDateStr}`);
         if (availRes.ok) {
           const availData = await availRes.json();

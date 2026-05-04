@@ -91,7 +91,7 @@ const handleSlotChange = useCallback(
   const fetchStylistDetail = async (id: number) => {
     try {
       setLoadingDetail(true);
-      const res = await fetch(`http://localhost:5001/api/thocat/${id}`);
+      const res = await fetch(`https://api.25zone.io.vn/api/thocat/${id}`);
       const data = await res.json();
       setStylistDetail(data);
     } catch (err) {
@@ -214,8 +214,8 @@ const handleSlotChange = useCallback(
                             s.image
                               ? s.image.startsWith("http")
                                 ? s.image
-                                : `http://localhost:5001/image/${s.image}`
-                              : "http://localhost:5001/image/25Zone.png"
+                                : `https://api.25zone.io.vn/image/${s.image}`
+                              : "https://api.25zone.io.vn/image/25Zone.png"
                           }
                           className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover bg-slate-100"
                           alt={s.name}
@@ -293,8 +293,8 @@ const handleSlotChange = useCallback(
                     stylist.image
                       ? stylist.image.startsWith("http")
                         ? stylist.image
-                        : `http://localhost:5001/image/${stylist.image}`
-                      : "http://localhost:5001/image/25Zone.png"
+                        : `https://api.25zone.io.vn/image/${stylist.image}`
+                      : "https://api.25zone.io.vn/image/25Zone.png"
                   }
                   alt={stylist?.name}
                   className="w-full h-full object-cover"
@@ -385,7 +385,7 @@ const handleSlotChange = useCallback(
                         {stylistDetail.resultImages.slice(0, 12).map((img: string, idx: number) => {
                           const imgSrc = img.startsWith('http') || img.startsWith('blob') || img.startsWith('data') 
                                     ? img 
-                                    : `http://localhost:5001${img.startsWith('/') ? '' : '/'}${img}`;
+                                    : `https://api.25zone.io.vn${img.startsWith('/') ? '' : '/'}${img}`;
                           return (
                             <div key={idx} className="aspect-square rounded-lg border border-slate-200 overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                               <img src={imgSrc} alt={`Tác phẩm ${idx + 1}`} className="w-full h-full object-cover" />

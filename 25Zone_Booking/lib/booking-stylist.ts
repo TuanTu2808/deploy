@@ -1,5 +1,5 @@
 export async function fetchStylists(storeId: number, date?: string) {
-  const url = new URL("http://localhost:5001/api/thocat");
+  const url = new URL("https://api.25zone.io.vn/api/thocat");
 
   url.searchParams.set("store", String(storeId));
 

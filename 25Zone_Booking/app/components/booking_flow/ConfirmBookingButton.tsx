@@ -33,7 +33,7 @@ export default function ConfirmBookingButton({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const apiBase =
-    process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "http://localhost:5001";
+    process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "https://api.25zone.io.vn";
 
   const canSubmit =
     Boolean(phone) &&

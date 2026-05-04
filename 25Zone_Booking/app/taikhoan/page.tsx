@@ -7,7 +7,7 @@ import { useAuth } from "@/app/components/auth/AuthProvider";
 import { apiRequest, errorMessage, toAbsoluteImageUrl } from "@/lib/api";
 import type { AuthUser } from "@/lib/auth-types";
 
-const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5001";
+const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.25zone.io.vn";
 
 export default function BookingAccountPage() {
   const { token, user, bootstrapped, setUser } = useAuth();

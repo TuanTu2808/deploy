@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const currentRefreshToken = loadRefreshToken();
 
     if (currentRefreshToken || currentAccessToken) {
-      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5001"}/api/auth/logout`, {
+      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.25zone.io.vn"}/api/auth/logout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

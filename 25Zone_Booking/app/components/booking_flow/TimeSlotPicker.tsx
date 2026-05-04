@@ -58,7 +58,7 @@ if (userId === -1) {
       setLoading(true);
 
       const res = await fetch(
-        `http://localhost:5001/api/lichlamviec?userId=${userId}&date=${date}`
+        `https://api.25zone.io.vn/api/lichlamviec?userId=${userId}&date=${date}`
       );
 
       const data = await res.json();

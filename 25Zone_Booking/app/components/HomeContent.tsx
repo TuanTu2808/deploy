@@ -96,7 +96,7 @@ const getCityImage = (normalizedProvince: string) =>
 
 const TrendingStyles = () => {
   const [styles, setStyles] = useState<any[]>([]);
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5001";
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.25zone.io.vn";
 
   useEffect(() => {
     let isMounted = true;
@@ -165,7 +165,7 @@ export default function HomeContent() {
   const [branchQuery, setBranchQuery] = useState("");
   const [activePromoIndex, setActivePromoIndex] = useState(0);
   const shopUrl = process.env.NEXT_PUBLIC_SHOP_URL || "http://localhost:3000";
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5001";
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.25zone.io.vn";
   const [featuredCityCards, setFeaturedCityCards] = useState<
     Array<{
       title: string;

@@ -46,7 +46,7 @@ const SERVICE_FALLBACKS = [
   "/image/25zone.png",
 ];
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5001";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.25zone.io.vn";
 const SERVICE_WINDOW_TRANSITION_MS = 420;
 
 const getServiceCarouselConfig = (width: number) => {

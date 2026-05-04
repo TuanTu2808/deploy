@@ -13,7 +13,7 @@ import Toast from "@/app/components/Toast";
 
 const apiBase =
   process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ||
-  "http://localhost:5001";
+  "https://api.25zone.io.vn";
 type SelectedItem = {
   key: string;
   title: string;
