@@ -62,6 +62,12 @@ export const loadUser = (): AuthUser | null => {
   return parseUser(readCookie(USER_KEY)) || parseUser(window.localStorage.getItem(USER_KEY)) || parseUser(window.sessionStorage.getItem(USER_KEY));
 };
 
+export const getCurrentAuthStorageKind = (): "local" | "session" => {
+  if (typeof window === "undefined") return "local";
+  if (window.sessionStorage.getItem(REFRESH_TOKEN_KEY)) return "session";
+  return "local";
+};
+
 const clearAllAuthKeys = () => {
   removeCookie(ACCESS_TOKEN_KEY);
   removeCookie(REFRESH_TOKEN_KEY);
