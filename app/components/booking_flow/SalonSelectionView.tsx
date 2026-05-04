@@ -238,7 +238,14 @@ export default function SalonSelectionView({
 
   const handleSelectSalon = (salonId: number) => {
     const salon = salonsWithDistance.find(s => s.id === salonId);
-    if (salon && salon.distanceValue !== undefined && salon.distanceValue > MAX_DISTANCE_KM) {
+    if (!salon) return;
+    
+    if (salon.status === "Đóng cửa" || salon.status === "Tạm ngưng") {
+      setSelectionFeedback(`Salon này hiện đang ${salon.status.toLowerCase()}. Vui lòng chọn salon khác.`);
+      return;
+    }
+
+    if (salon.distanceValue !== undefined && salon.distanceValue > MAX_DISTANCE_KM) {
        setPendingSelection(salonId);
        return;
     }
@@ -463,7 +470,11 @@ export default function SalonSelectionView({
                   <div
                     key={salon.id}
                     onClick={() => handleSelectSalon(salon.id)}
-                    className={`group cursor-pointer overflow-hidden rounded-3xl border bg-white shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${isSelected ? "border-blue-600 ring-1 ring-blue-600/20" : "border-slate-100"
+                    className={`group overflow-hidden rounded-3xl border bg-white shadow-sm transition-all duration-300 ${
+                      salon.status === "Mở cửa" 
+                        ? "cursor-pointer hover:shadow-lg hover:-translate-y-1" 
+                        : "cursor-not-allowed opacity-80 grayscale-[0.2]"
+                    } ${isSelected ? "border-blue-600 ring-1 ring-blue-600/20" : "border-slate-100"
                       }`}
                   >
                     <div className="relative h-40 overflow-hidden sm:h-44">
@@ -474,9 +485,9 @@ export default function SalonSelectionView({
                       />
                       <div className="absolute left-3 top-3 flex flex-col gap-2 items-start">
                         <span
-                          className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest shadow-lg ${salon.status === "Đang mở"
-                            ? "bg-red-500 text-white"
-                            : "bg-green-600 text-white"
+                          className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest shadow-lg ${salon.status === "Mở cửa"
+                            ? "bg-green-600 text-white"
+                            : "bg-red-500 text-white"
                           }`}
                         >
                           {salon.status}
@@ -504,13 +515,21 @@ export default function SalonSelectionView({
                       </p>
                       <button
                         type="button"
-                        className={`flex w-full items-center justify-center rounded-xl py-2 text-[11px] font-semibold transition-colors sm:text-base ${isSelected
-                          ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                          : "bg-blue-900 text-white hover:bg-blue-800 shadow-sm"
+                        disabled={salon.status !== "Mở cửa"}
+                        className={`flex w-full items-center justify-center rounded-xl py-2 text-[11px] font-semibold transition-colors sm:text-base ${
+                          salon.status !== "Mở cửa"
+                            ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                            : isSelected
+                              ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                              : "bg-blue-900 text-white hover:bg-blue-800 shadow-sm"
                           }`}
                       >
-                        {isSelected ? "✅ Đã chọn" : "Chọn salon này"}
-                        {!isSelected && (
+                        {salon.status !== "Mở cửa" 
+                          ? salon.status 
+                          : isSelected 
+                            ? "✅ Đã chọn" 
+                            : "Chọn salon này"}
+                        {salon.status === "Mở cửa" && !isSelected && (
                           <svg
                             className="ml-2 h-4 w-4"
                             fill="none"

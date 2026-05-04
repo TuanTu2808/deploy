@@ -113,28 +113,65 @@ const getMockCoordinates = (province: string, id: number) => {
     baseLng = 106.6519; // Thủ Dầu Một
   }
 
-  // Add a small pseudo-random offset based on ID so they don't all stack up
+// Add a small pseudo-random offset based on ID so they don't all stack up
   return {
     latitude: baseLat + (id % 10) * 0.01 - 0.05,
     longitude: baseLng + (id % 10) * 0.01 - 0.05,
   };
 };
 
+const isStoreOpen = (openingTime?: string | null, closingTime?: string | null) => {
+  if (!closingTime) return true;
+  
+  const now = new Date();
+  const options = { timeZone: "Asia/Ho_Chi_Minh", hour: '2-digit', minute: '2-digit', hour12: false } as const;
+  const timeString = now.toLocaleTimeString("en-US", options); // "HH:MM" or "24:00"
+  
+  // Handle edge case where 24 gets returned
+  const [hourStr, minuteStr] = timeString.split(":");
+  const currentHour = hourStr === "24" ? 0 : Number(hourStr);
+  const currentMinute = Number(minuteStr);
+  const currentTime = currentHour * 60 + currentMinute;
+
+  let openTime = 0;
+  if (openingTime) {
+    const [openH, openM] = openingTime.split(":").map(Number);
+    openTime = (openH || 0) * 60 + (openM || 0);
+  }
+
+  const [closeH, closeM] = closingTime.split(":").map(Number);
+  const closeTime = (closeH || 0) * 60 + (closeM || 0);
+
+  if (currentTime >= closeTime) return false;
+  if (openingTime && currentTime < openTime) return false;
+
+  return true;
+};
+
 export const mapRawStoreToBookingSalon = (store: RawStore): BookingSalon => {
   const id = Number(store.Id_store || 0);
-  const isActive = Number(store.Status ?? 1) === 1;
+  let isActive = Number(store.Status ?? 1) === 1;
   const province = cleanText(store.Province);
   const ward = cleanText(store.Ward);
   const coords = getMockCoordinates(province, id);
+  
+  let statusText = isActive ? "Mở cửa" : "Tạm ngưng";
+  let statusTone = isActive
+    ? "bg-emerald-500/10 text-emerald-700"
+    : "bg-slate-500/10 text-slate-700";
+
+  if (isActive && !isStoreOpen(store.Opening_time, store.Closing_time)) {
+    isActive = false; // Disable booking if closed
+    statusText = "Đóng cửa";
+    statusTone = "bg-red-500/10 text-red-700";
+  }
 
   return {
     id,
     name: cleanText(store.Name_store) || `25ZONE #${id || "--"}`,
     address: formatAddress(store.Address, ward, province),
-    status: isActive ? "Mở cửa" : "Tạm ngưng",
-    statusTone: isActive
-      ? "bg-emerald-500/10 text-emerald-700"
-      : "bg-slate-500/10 text-slate-700",
+    status: statusText,
+    statusTone: statusTone,
     hours: formatHours(store.Opening_time, store.Closing_time),
     phone: cleanText(store.Phone) || "Chưa cập nhật",
     distance: formatLocationLabel(ward, province),
