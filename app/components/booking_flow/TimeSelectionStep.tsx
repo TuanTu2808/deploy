@@ -122,6 +122,18 @@ export default function TimeSelectionStep({
   const handleContinue = async () => {
     if (!selection) return;
 
+    // Check if selected time is in the past
+    const now = new Date();
+    const [year, month, day] = selection.date.split('-').map(Number);
+    const [hours, minutes] = selection.time.split(':').map(Number);
+    if (!isNaN(year) && !isNaN(month) && !isNaN(day) && !isNaN(hours) && !isNaN(minutes)) {
+      const selectedDateTime = new Date(year, month - 1, day, hours, minutes);
+      if (selectedDateTime < now) {
+        setPopupMessage("Thời gian bạn chọn đã trôi qua. Hệ thống không thể đặt lịch ở quá khứ. Vui lòng chọn thời gian mới.");
+        return;
+      }
+    }
+
     if (selection.stylist.id !== -1) {
       try {
         setIsChecking(true);

@@ -56,6 +56,7 @@ export default function VoucherSection({
   const [selectedVoucher, setSelectedVoucher] = useState<any>(null);
   const [showAllVouchers, setShowAllVouchers] = useState(false);
   const [toast, setToast] = useState<{message: string, type: "success" | "error" | "warning"} | null>(null);
+  const [popupTimeError, setPopupTimeError] = useState(false);
 
   const selectedItemsScrollRef = useRef<HTMLDivElement>(null);
   const [cartScrollState, setCartScrollState] = useState<'top' | 'bottom'>('top');
@@ -149,6 +150,20 @@ export default function VoucherSection({
   };
   // CONFIRM
   const handleConfirm = async () => {
+    // Kiểm tra giờ hợp lệ
+    if (selectedDate && selectedTime) {
+      const now = new Date();
+      const [year, month, day] = selectedDate.split('-').map(Number);
+      const [hours, minutes] = selectedTime.split(':').map(Number);
+      if (!isNaN(year) && !isNaN(month) && !isNaN(day) && !isNaN(hours) && !isNaN(minutes)) {
+        const selectedDateTime = new Date(year, month - 1, day, hours, minutes);
+        if (selectedDateTime < now) {
+          setPopupTimeError(true);
+          return;
+        }
+      }
+    }
+
     setConfirming(true);
 
     try {
@@ -537,6 +552,36 @@ export default function VoucherSection({
           type={toast.type}
           onClose={() => setToast(null)}
         />
+      )}
+
+      {/* POPUP VIEW CHO THỜI GIAN ĐÃ QUA */}
+      {popupTimeError && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm transition-all duration-300 px-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100">
+            <div className="text-center">
+              <div className="mx-auto flex flex-col items-center justify-center h-16 w-16 rounded-full bg-red-50 text-red-500 mb-4 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+                <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <h3 className="text-lg font-black text-slate-900 mb-2">Thời gian đã qua</h3>
+              <p className="text-[13.5px] text-slate-600 mb-6 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100">
+                Thời gian bạn chọn ({selectedTime} ngày {selectedDate.split('-').reverse().join('/')}) đã trôi qua. Hệ thống không thể đặt lịch ở quá khứ. Vui lòng quay lại để chọn thời gian mới.
+              </p>
+              <button
+                onClick={() => {
+                  setPopupTimeError(false);
+                  router.push(buildBookingFlowHref(3, safeSelection, {
+                    stylistId: selectedStylistId || undefined,
+                    date: selectedDate || undefined,
+                    time: selectedTime || undefined,
+                  }));
+                }}
+                className="w-full bg-blue-900 text-white font-semibold py-3 rounded-xl hover:bg-blue-800 transition-colors shadow-md shadow-blue-900/20 active:scale-95"
+              >
+                Quay lại chọn thời gian
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
