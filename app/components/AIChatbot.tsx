@@ -10,6 +10,7 @@ type Message = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  action?: "booking" | "login" | "none" | null;
   bookingContext?: {
     salonId?: number | null;
     serviceIds?: number[];
@@ -94,6 +95,7 @@ export default function AIChatbot() {
           id: (Date.now() + 1).toString(),
           role: "assistant",
           content: data.reply,
+          action: data.action,
           bookingContext: data.bookingContext,
         },
       ]);
@@ -194,7 +196,7 @@ export default function AIChatbot() {
               >
                 {msg.content}
                 
-                {msg.role === "assistant" && msg.content.includes("/chonsalon") && (
+                {msg.role === "assistant" && msg.action === "booking" && (
                    <button 
                      onClick={() => {
                         setIsOpen(false);
@@ -213,7 +215,7 @@ export default function AIChatbot() {
                    </button>
                 )}
 
-                {msg.role === "assistant" && msg.content.includes("/yeucaudangnhap") && (
+                {msg.role === "assistant" && msg.action === "login" && (
                    <button 
                      onClick={() => {
                         setIsOpen(false);
