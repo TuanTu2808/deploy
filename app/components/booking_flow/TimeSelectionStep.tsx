@@ -207,7 +207,7 @@ export default function TimeSelectionStep({
     Boolean(phone);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 lg:gap-8 lg:items-start pb-28 lg:pb-0">
+    <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-6 lg:gap-8 lg:items-start pb-28 lg:pb-0">
       {/* LEFT COLUMN: Stylist & Time Panel */}
       <div className="lg:sticky lg:top-[120px] lg:z-40 lg:h-[calc(100vh-190px)] min-h-0">
         <StylistTimePanel

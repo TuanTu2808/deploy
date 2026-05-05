@@ -172,7 +172,7 @@ React.useEffect(() => {
       <div className="mt-4 text-[11px] sm:text-sm text-slate-500">
         Đã chọn:{" "}
         <span className="font-semibold text-slate-800">{selected}</span> ·{" "}
-        <span className="font-semibold text-slate-800">{date}</span>
+        <span className="font-semibold text-slate-800">{date.split('-').reverse().join('/')}</span>
       </div>
     </div>
   );
