@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
     try {
-        const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "AIzaSyCrRGNxfMe9C8NBafPC7dNcq5CjAqJuT1w";
+        const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
         if (!apiKey) {
             return NextResponse.json(
                 { error: "Missing GEMINI_API_KEY or GOOGLE_API_KEY in environment." },
