@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import { fetchBookingServices } from "@/lib/booking-services";
 import { fetchBookingSalons } from "@/lib/booking-salons";
 import { fetchBookingComboCatalog } from "@/lib/booking-combo";
+import { getFallbackGeminiKey } from "./keys";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
     try {
-        const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+        const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || getFallbackGeminiKey();
         if (!apiKey) {
             return NextResponse.json(
                 { error: "Missing GEMINI_API_KEY or GOOGLE_API_KEY in environment." },
