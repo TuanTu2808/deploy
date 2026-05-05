@@ -280,14 +280,14 @@ export default function Header() {
 
         <aside
           className={
-            "absolute right-0 top-0 h-full w-[86%] max-w-[380px] rounded-l-2xl bg-white shadow-2xl " +
+            "absolute right-0 top-0 flex h-full w-[86%] max-w-[380px] flex-col rounded-l-2xl bg-white shadow-2xl " +
             "transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] " +
             (drawerOpen ? "translate-x-0" : "translate-x-full")
           }
           role="dialog"
           aria-modal="true"
         >
-          <div className="flex items-center justify-between border-b px-4 py-4">
+          <div className="flex shrink-0 items-center justify-between border-b px-4 py-4">
             <span className="font-extrabold uppercase tracking-wider text-navy">Menu</span>
             <button
               type="button"
@@ -299,7 +299,7 @@ export default function Header() {
             </button>
           </div>
 
-          <div className="p-4">
+          <div className="flex-1 overflow-y-auto p-4">
             <div className="flex flex-col gap-2">
               {NAV.map((item) => {
                 const active = isActive(pathname, item.href);
