@@ -209,7 +209,7 @@ export default function TimeSelectionStep({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-6 lg:gap-8 lg:items-start pb-28 lg:pb-0">
       {/* LEFT COLUMN: Stylist & Time Panel */}
-      <div className="lg:sticky lg:top-[120px] lg:z-40 lg:h-[calc(100vh-190px)] min-h-0">
+      <div className="lg:sticky lg:top-[120px] lg:z-40 lg:max-h-[calc(100vh-190px)] min-h-0">
         <StylistTimePanel
           stylists={stylists}
           initialDate={selectedDate}
@@ -221,7 +221,7 @@ export default function TimeSelectionStep({
       </div>
 
       {/* RIGHT COLUMN: Sticky Cart Container */}
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-4 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] lg:static lg:block lg:shadow-sm lg:rounded-3xl lg:border lg:bg-white lg:p-5 lg:sticky lg:top-[120px] lg:z-40 lg:h-[calc(100vh-190px)] lg:min-h-0 lg:flex lg:flex-col lg:gap-5 flex flex-col gap-4 transition-all">
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-4 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] lg:static lg:block lg:shadow-sm lg:rounded-3xl lg:border lg:bg-white lg:p-5 lg:sticky lg:top-[120px] lg:z-40 lg:max-h-[calc(100vh-190px)] lg:min-h-0 lg:flex lg:flex-col lg:gap-5 flex flex-col gap-4 transition-all">
 
         {/* ================= MOBILE COMPACT CART ================= */}
         <div className="flex lg:hidden items-center justify-between gap-3">
