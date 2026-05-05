@@ -492,11 +492,6 @@ export default function SalonSelectionView({
                         >
                           {salon.status}
                         </span>
-                        {salon.distanceValue !== undefined && salon.distanceValue === sortedFilteredSalons[0]?.distanceValue && (
-                          <span className="inline-flex items-center rounded-full bg-amber-500 px-3 py-1 text-[10px] font-bold text-white shadow-lg">
-                            📍 Gần bạn nhất
-                          </span>
-                        )}
                       </div>
                       {salon.distanceValue !== undefined && (
                         <div className="absolute right-3 top-3">

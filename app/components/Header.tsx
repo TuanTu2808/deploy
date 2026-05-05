@@ -13,7 +13,7 @@ type AuthMode = "login" | "register";
 const NAV: NavItem[] = [
   { label: "Trang chủ", href: "/" },
   { label: "Về 25Zone", href: "/gioithieu" },
-  { label: "25Zone Shop", href: "http://localhost:3000" },
+  { label: "25Zone Shop", href: "https://shop25zone.vercel.app/"},
   { label: "Tìm Salon", href: "/chinhanh" },
   { label: "Nhượng quyền", href: "/nhuongquyen" },
   { label: "Đối tác", href: "/doitac" },

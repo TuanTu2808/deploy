@@ -164,7 +164,7 @@ export default function HomeContent() {
   const [showOtpSuccess, setShowOtpSuccess] = useState(false);
   const [branchQuery, setBranchQuery] = useState("");
   const [activePromoIndex, setActivePromoIndex] = useState(0);
-  const shopUrl = process.env.NEXT_PUBLIC_SHOP_URL || "http://localhost:3000";
+  const shopUrl = process.env.NEXT_PUBLIC_SHOP_URL || "https://shop25zone.vercel.app/";
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.25zone.io.vn";
   const [featuredCityCards, setFeaturedCityCards] = useState<
     Array<{
