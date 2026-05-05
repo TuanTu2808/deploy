@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
@@ -7,6 +7,7 @@ import Footer from "@/app/components/Footer";
 import SmoothScrollProvider from "@/app/components/SmoothScrollProvider";
 import AuthModalGate from "@/app/components/auth/AuthModalGate";
 import AppProviders from "@/app/components/providers/AppProviders";
+import AIChatbot from "@/app/components/AIChatbot";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -42,6 +43,7 @@ export default function RootLayout({
               {children}
               <Footer />
               <AuthModalGate />
+              <AIChatbot />
               {modal}
             </SmoothScrollProvider>
           </Suspense>

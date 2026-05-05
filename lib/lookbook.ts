@@ -1,5 +1,11 @@
-import { apiUrl } from "./api";
-import { type LookbookItem } from "@/app/bosuutap/lookbookData";
+import { apiUrl, toAbsoluteImageUrl } from "./api";
+
+export type LookbookItem = {
+  title: string;
+  desc: string;
+  tag: string;
+  image: string;
+};
 
 export const fetchLookbook = async (): Promise<LookbookItem[]> => {
   try {
@@ -13,7 +19,12 @@ export const fetchLookbook = async (): Promise<LookbookItem[]> => {
     }
 
     const payload = await response.json();
-    return Array.isArray(payload) ? payload : [];
+    if (!Array.isArray(payload)) return [];
+
+    return payload.map((item: any) => ({
+      ...item,
+      image: toAbsoluteImageUrl(item.image) || "/image 11.png",
+    }));
   } catch (error) {
     console.error("Không thể tải bộ sưu tập từ database:", error);
     return [];

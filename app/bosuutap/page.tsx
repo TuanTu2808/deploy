@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import React from "react";
-import LookbookAi from "./LookbookAi";
 import { fetchLookbook } from "@/lib/lookbook";
 
 export const metadata: Metadata = {
@@ -34,35 +33,33 @@ export default async function Page() {
         </div>
       </section>
 
-      <LookbookAi />
-
       <section className="max-w-content mx-auto px-4 sm:px-6 py-10 sm:py-14 lg:py-20">
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
           {dynamicLookbook.map((item, idx) => (
             <article
-              key={`${item.title}-${idx}`}
-              className="group overflow-hidden rounded-2xl bg-white border border-gray-100 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+              key={idx}
+              className="group relative overflow-hidden rounded-2xl bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl"
             >
-              <div className="relative aspect-[4/5] overflow-hidden">
+              <div className="aspect-[4/5] w-full overflow-hidden">
                 <img
-                  alt={item.title || "Hình ảnh"}
+                  alt={item.title}
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   src={item.image}
+                  loading="lazy"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                <div className="absolute bottom-4 left-4 right-4">
-                  <span className="inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white backdrop-blur-md">
-                    {item.tag || "Trending"}
-                  </span>
-                  <h3 className="mt-2 text-lg sm:text-xl font-bold text-white">
-                    {item.title}
-                  </h3>
-                </div>
               </div>
-              <div className="p-4 sm:p-5">
-                <p className="text-[13px] sm:text-sm text-gray-600 leading-relaxed">
-                  {item.desc}
-                </p>
+              <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                <div className="p-6">
+                  <span className="mb-2 inline-block rounded-full bg-primary/90 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-900 shadow-sm backdrop-blur-sm">
+                    {item.tag}
+                  </span>
+                  <h2 className="text-xl font-bold text-white mb-2">
+                    {item.title}
+                  </h2>
+                  <p className="text-sm text-gray-200 line-clamp-2">
+                    {item.desc}
+                  </p>
+                </div>
               </div>
             </article>
           ))}
