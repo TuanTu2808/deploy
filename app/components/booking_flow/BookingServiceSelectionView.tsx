@@ -942,7 +942,6 @@ const handleSelectCombo = async (combo: BookingComboItem) => {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h2 className="text-base font-bold text-slate-900 sm:text-xl">Mục đã chọn</h2>
-                    <p className="text-xs text-slate-500 sm:text-sm mt-1">Lẻ tối đa {MAX_BOOKING_SERVICES}, Combo tối đa 1.</p>
                   </div>
                   <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-bold text-blue-700">
                     {selectedServices.length + selectedCombos.length} đang giữ
@@ -951,8 +950,8 @@ const handleSelectCombo = async (combo: BookingComboItem) => {
 
                 {/* THỜI GIAN VÀ GIÁ */}
                 <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-100">
-                  {totalCustomerDuration > 0 && <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-semibold text-slate-600">Khách: {totalCustomerDuration} phút</span>}
-                  {totalStylistDuration > 0 && <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[10px] font-semibold text-indigo-700">Nội bộ: {totalStylistDuration} phút</span>}
+                  {totalCustomerDuration > 0 && <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[10px] font-semibold text-indigo-700">Thời lượng: {totalCustomerDuration} phút</span>}
+                  {/* {totalStylistDuration > 0 && <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[10px] font-semibold text-indigo-700">Nội bộ: {totalStylistDuration} phút</span>} */}
                 </div>
 
                 <div className="relative group">
