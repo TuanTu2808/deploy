@@ -9,7 +9,7 @@ export default function TopStylists() {
   const [stylists, setStylists] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.25zone.io.vn"}/api/thocat`)
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5001"}/api/thocat`)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
@@ -39,10 +39,14 @@ export default function TopStylists() {
             <div className="p-6 relative z-20 -mt-12 sm:-mt-16 md:-mt-20 text-center">
               <h3 className="text-3xl font-black uppercase text-white mb-1 drop-shadow-lg">{stylist.Name_user}</h3>
               <p className="text-primary text-sm font-bold mb-6 tracking-wide">{stylist.Name_store}</p>
-              <button type="button" onClick={() => router.push(`/chonsalon?step=1&storeId=${stylist.Id_store}`)} className="w-full bg-white/10 hover:bg-primary hover:text-navy text-white font-black py-4 rounded-xl uppercase text-sm tracking-wider transition-all backdrop-blur-sm border border-white/20 flex items-center justify-center gap-2">
-                <span className="material-symbols-outlined text-lg">calendar_month</span>
-                Đặt lịch với Stylist
-              </button>
+              <div className="flex items-center justify-center gap-1 w-full bg-white/5 py-4 rounded-xl border border-white/10 backdrop-blur-sm">
+                {[...Array(5)].map((_, i) => (
+                  <span key={i} className={`material-symbols-outlined text-2xl ${i < Math.round(stylist.rating || 5) ? 'text-yellow-400' : 'text-gray-600'}`} style={{ fontVariationSettings: "'FILL' 1" }}>
+                    star
+                  </span>
+                ))}
+                <span className="text-white font-bold ml-2 text-lg">{Number(stylist.rating || 5).toFixed(1)}/5.0</span>
+              </div>
             </div>
           </div>
         );
