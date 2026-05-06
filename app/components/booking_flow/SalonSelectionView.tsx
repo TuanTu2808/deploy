@@ -240,8 +240,8 @@ export default function SalonSelectionView({
     const salon = salonsWithDistance.find(s => s.id === salonId);
     if (!salon) return;
     
-    if (salon.status === "Đóng cửa" || salon.status === "Tạm ngưng") {
-      setSelectionFeedback(`Salon này hiện đang ${salon.status.toLowerCase()}. Vui lòng chọn salon khác.`);
+    if (salon.status === "Tạm ngưng") {
+      setSelectionFeedback(`Salon này hiện đang tạm ngưng. Vui lòng chọn salon khác.`);
       return;
     }
 
@@ -471,9 +471,9 @@ export default function SalonSelectionView({
                     key={salon.id}
                     onClick={() => handleSelectSalon(salon.id)}
                     className={`group overflow-hidden rounded-3xl border bg-white shadow-sm transition-all duration-300 ${
-                      salon.status === "Mở cửa" 
-                        ? "cursor-pointer hover:shadow-lg hover:-translate-y-1" 
-                        : "cursor-not-allowed opacity-80 grayscale-[0.2]"
+                      salon.status === "Tạm ngưng" 
+                        ? "cursor-not-allowed opacity-80 grayscale-[0.2]"
+                        : "cursor-pointer hover:shadow-lg hover:-translate-y-1" 
                     } ${isSelected ? "border-blue-600 ring-1 ring-blue-600/20" : "border-slate-100"
                       }`}
                   >
@@ -510,21 +510,21 @@ export default function SalonSelectionView({
                       </p>
                       <button
                         type="button"
-                        disabled={salon.status !== "Mở cửa"}
+                        disabled={salon.status === "Tạm ngưng"}
                         className={`flex w-full items-center justify-center rounded-xl py-2 text-[11px] font-semibold transition-colors sm:text-base ${
-                          salon.status !== "Mở cửa"
+                          salon.status === "Tạm ngưng"
                             ? "bg-slate-200 text-slate-500 cursor-not-allowed"
                             : isSelected
                               ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
                               : "bg-blue-900 text-white hover:bg-blue-800 shadow-sm"
                           }`}
                       >
-                        {salon.status !== "Mở cửa" 
+                        {salon.status === "Tạm ngưng" 
                           ? salon.status 
                           : isSelected 
                             ? "✅ Đã chọn" 
                             : "Chọn salon này"}
-                        {salon.status === "Mở cửa" && !isSelected && (
+                        {salon.status !== "Tạm ngưng" && !isSelected && (
                           <svg
                             className="ml-2 h-4 w-4"
                             fill="none"
