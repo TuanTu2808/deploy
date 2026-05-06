@@ -513,7 +513,7 @@ const handleQuickBooking = async (
             </div>
             <div className="grid grid-cols-1 md:grid-cols-12 md:grid-rows-2 gap-4 sm:gap-6 md:gap-4 md:min-h-[800px]">
               {/* Chúng ta sẽ load động 5 kiểu tóc từ backend. Tạm thời gọi API /api/bosuutap */}
-              <TopStylists />
+              <TrendingStyles />
             </div>
           </div>
         </section>
