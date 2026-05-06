@@ -36,14 +36,14 @@ export default function TopStylists() {
               <div className={`absolute top-4 right-4 z-20 font-black px-4 py-2 rounded-lg shadow-lg text-sm border-2 ${medalClass}`}>
                 TOP {index + 1}</div>
             </div>
-            {/* <div className="p-6 relative z-20 -mt-12 sm:-mt-16 md:-mt-20 text-center">
+            <div className="p-6 relative z-20 -mt-12 sm:-mt-16 md:-mt-20 text-center">
               <h3 className="text-3xl font-black uppercase text-white mb-1 drop-shadow-lg">{stylist.Name_user}</h3>
               <p className="text-primary text-sm font-bold mb-6 tracking-wide">{stylist.Name_store}</p>
-              <button type="button" onClick={() => router.push(`/chonsalon?step=1&storeId=${stylist.Id_store}`)} className="w-full bg-white/10 hover:bg-primary hover:text-navy text-white font-black py-4 rounded-xl uppercase text-sm tracking-wider transition-all backdrop-blur-sm border border-white/20 flex items-center justify-center gap-2">
+              {/* <button type="button" onClick={() => router.push(`/chonsalon?step=1&storeId=${stylist.Id_store}`)} className="w-full bg-white/10 hover:bg-primary hover:text-navy text-white font-black py-4 rounded-xl uppercase text-sm tracking-wider transition-all backdrop-blur-sm border border-white/20 flex items-center justify-center gap-2">
                 <span className="material-symbols-outlined text-lg">calendar_month</span>
                 Đặt lịch với Stylist
-              </button>
-            </div> */}
+              </button> */}
+            </div>
           </div>
         );
       })}
