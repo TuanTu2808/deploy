@@ -9,7 +9,7 @@ export default function TopStylists() {
   const [stylists, setStylists] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5001"}/api/thocat`)
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || "http://api.25zone.io.vn"}/api/thocat`)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
