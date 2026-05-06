@@ -41,11 +41,11 @@ export default function TopStylists() {
               <p className="text-primary text-sm font-bold mb-6 tracking-wide">{stylist.Name_store}</p>
               <div className="flex items-center justify-center gap-1 w-full bg-white/5 py-4 rounded-xl border border-white/10 backdrop-blur-sm">
                 {[...Array(5)].map((_, i) => (
-                  <span key={i} className={`material-symbols-outlined text-2xl ${i < Math.round(stylist.rating || 5) ? 'text-yellow-400' : 'text-gray-600'}`} style={{ fontVariationSettings: "'FILL' 1" }}>
+                  <span key={i} className={`material-symbols-outlined text-2xl ${i < Math.round(stylist.rating || 0) ? 'text-yellow-400' : 'text-gray-600'}`} style={{ fontVariationSettings: "'FILL' 1" }}>
                     star
                   </span>
                 ))}
-                <span className="text-white font-bold ml-2 text-lg">{Number(stylist.rating || 5).toFixed(1)}/5.0</span>
+                <span className="text-white font-bold ml-2 text-lg">{Number(stylist.rating || 0).toFixed(1)}/5.0</span>
               </div>
             </div>
           </div>
