@@ -96,6 +96,9 @@ Hướng dẫn điền JSON:
 - "reply": Câu trả lời của bạn. TUYỆT ĐỐI KHÔNG đưa các con số ID của dịch vụ, chi nhánh hay combo vào trong câu trả lời này để tránh thiếu chuyên nghiệp. Chỉ nhắc đến tên dịch vụ/chi nhánh.
 - "action": Dựa vào ý định của khách, trả về "booking" nếu khách có ý định đặt lịch. Trả về "login" NẾU khách YÊU CẦU TRA CỨU LỊCH SỬ nhưng họ CHƯA ĐĂNG NHẬP. Các trường hợp khác trả về "none".
 - "bookingContext": Dựa vào cuộc hội thoại, nếu khách ĐÃ CHỌN hoặc BẠN ĐÃ GỢI Ý một chi nhánh cụ thể, hãy điền ID của chi nhánh đó vào "salonId" (số nguyên). Nếu khách đã chọn dịch vụ hoặc combo, hãy điền ID của chúng vào "serviceIds" (mảng số nguyên) và "comboIds" (mảng số nguyên). Nếu chưa xác định được, để null hoặc mảng rỗng [].
+- KHÔNG BAO GIỜ được chọn trùng lặp ID trong "serviceIds" hoặc "comboIds" (mỗi ID chỉ xuất hiện tối đa 1 lần).
+- Chỉ điền ID của dịch vụ/combo/chi nhánh CÓ THẬT trong danh sách dữ liệu được cung cấp bên dưới. Không tự bịa ID.
+- Logic đặt lịch: Để đặt lịch thành công, hệ thống cần khách chọn ít nhất 1 dịch vụ hoặc 1 combo, và 1 chi nhánh. Nếu khách thiếu thông tin này, hãy lịch sự gợi ý từ danh sách. Khi đã đủ thông tin hoặc khách chốt đặt lịch, hãy đặt "action": "booking".
 
 THÔNG TIN LỊCH SỬ KHÁCH HÀNG:
 ${bookingHistoryText}
@@ -161,6 +164,17 @@ Ví dụ mẫu bạn PHẢI tuân thủ:
 
         try {
             const aiData = JSON.parse(rawText);
+            
+            // Xử lý loại bỏ trùng lặp dịch vụ và combo
+            if (aiData.bookingContext) {
+                if (Array.isArray(aiData.bookingContext.serviceIds)) {
+                    aiData.bookingContext.serviceIds = [...new Set(aiData.bookingContext.serviceIds)];
+                }
+                if (Array.isArray(aiData.bookingContext.comboIds)) {
+                    aiData.bookingContext.comboIds = [...new Set(aiData.bookingContext.comboIds)];
+                }
+            }
+
             return NextResponse.json({
                 reply: aiData.reply || "Xin lỗi, mình chưa hiểu ý bạn.",
                 action: aiData.action || "none",
