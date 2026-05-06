@@ -7,9 +7,9 @@ import { useRouter } from "next/navigation";
 export default function TopStylists() {
   const router = useRouter();
   const [stylists, setStylists] = useState<any[]>([]);
-
+  const API_BASE = "https://api.25zone.io.vn";
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.25zone.io.vn"}/api/thocat`)
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || API_BASE}/api/thocat`)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
